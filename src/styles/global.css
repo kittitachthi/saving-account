@@ -1,0 +1,37 @@
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap");
+@import "./tokens.css";
+
+:root {
+  font-family: "Noto Sans Thai", "Segoe UI", sans-serif;
+  color: var(--color-text);
+  background: var(--color-page);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  transition:
+    background-color var(--duration-theme) ease,
+    color var(--duration-theme) ease;
+}
+body {
+  min-width: 320px;
+  margin: 0;
+  background: var(--color-page);
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body {
+    transition: none;
+  }
+}

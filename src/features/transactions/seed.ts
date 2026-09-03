@@ -1,0 +1,48 @@
+import type { Transaction } from "./domain";
+export const seedTransactions: Transaction[] = [
+  {
+    id: 1,
+    title: "เงินเดือน",
+    category: "รายรับ",
+    date: "3 ก.ย. 2569",
+    amount: 32500,
+    type: "income",
+    icon: "฿",
+  },
+  {
+    id: 2,
+    title: "ค่าอาหารกลางวัน",
+    category: "อาหาร",
+    date: "3 ก.ย. 2569",
+    amount: 85,
+    type: "expense",
+    icon: "🍜",
+  },
+  {
+    id: 3,
+    title: "กาแฟ",
+    category: "อาหาร",
+    date: "3 ก.ย. 2569",
+    amount: 65,
+    type: "expense",
+    icon: "☕",
+  },
+  {
+    id: 4,
+    title: "ค่าเดินทาง",
+    category: "เดินทาง",
+    date: "2 ก.ย. 2569",
+    amount: 120,
+    type: "expense",
+    icon: "🚆",
+  },
+  {
+    id: 5,
+    title: "ซื้อของเข้าบ้าน",
+    category: "ช้อปปิ้ง",
+    date: "2 ก.ย. 2569",
+    amount: 1240,
+    type: "expense",
+    icon: "🛍️",
+  },
+];

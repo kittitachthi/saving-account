@@ -1,0 +1,41 @@
+# คำศัพท์โดเมน
+
+- **รายการ (Transaction):** การเคลื่อนไหวของเงินหนึ่งครั้ง
+- **รายรับ (Income):** รายการที่เพิ่มยอดเงินคงเหลือ
+- **รายจ่าย (Expense):** รายการที่ลดยอดเงินคงเหลือ
+- **ยอดคงเหลือ (Balance):** รายรับรวมลบด้วยรายจ่ายรวม
+- **งบประมาณ (Budget):** วงเงินรายจ่ายที่ตั้งไว้สำหรับเดือนปัจจุบัน
+- **หมวดหมู่ (Category):** กลุ่มของรายการ เช่น อาหาร เดินทาง หรือช้อปปิ้ง
+- **การลบรายการ (Delete Transaction):** การนำรายการออกจากข้อมูลของอุปกรณ์ แล้วคำนวณยอดใหม่จากรายการที่เหลือ
+- **ธีม (Theme):** ชุดสีของหน้าจอ มีค่า `light` หรือ `dark`
+- **ค่าธีมของผู้ใช้ (Theme Preference):** ธีมล่าสุดที่ผู้ใช้เลือกและบันทึกไว้ในเบราว์เซอร์
+- **ธีมระบบ (System Theme):** ค่ารูปแบบสีจาก `prefers-color-scheme` ซึ่งใช้เมื่อยังไม่มี Theme Preference ที่ถูกต้อง
+- **พื้นผิวการตั้งค่า (Settings Surface):** พื้นที่ที่เปิดหลังผู้ใช้กดตั้งค่า โดยเป็น popover บนเดสก์ท็อปและ bottom sheet บนมือถือ
+- **ปุ่มเปลี่ยนธีม (Theme Toggle):** ปุ่มไอคอนที่แสดงธีมปลายทางและเปลี่ยน Theme เมื่อกด
+- **คำขอลบ (Delete Request):** ความตั้งใจลบ Transaction ซึ่งยังไม่เปลี่ยน state จนกว่าจะได้รับการยืนยัน
+- **การยืนยันการลบ (Delete Confirmation):** dialog ที่แสดง Transaction และจำนวนเงินเพื่อให้ผู้ใช้ยืนยันหรือออกจากขั้นตอนอย่างปลอดภัย
+- **การยกเลิก (Cancel):** การกดปุ่มยกเลิกใน Delete Confirmation โดยเฉพาะ แยกจากการปิด dialog ด้วย Escape หรือพื้นที่ด้านนอก
+- **การย้อนกลับ (Undo):** การคืน Transaction ที่เพิ่งลบไปยังตำแหน่งเดิมภายในเวลา 5 วินาที
+- **รายการที่ถูกนำออก (Removed Transaction):** Transaction พร้อมตำแหน่งเดิมที่เก็บไว้ชั่วคราวระหว่างช่วง Undo
+- **สรุปหมวดหมู่ (Category Summary):** ข้อมูลรวมของ Category ได้แก่จำนวนเงิน เปอร์เซ็นต์ จำนวน Transaction และค่าเฉลี่ย
+- **ส่วนกราฟ (Donut Segment):** พื้นที่ interactive ของ Category หนึ่งหมวดในกราฟวงแหวน
+- **การลดการเคลื่อนไหว (Reduced Motion):** รูปแบบ interaction ที่รักษาข้อมูลและ feedback แต่ตัดการยก เลื่อน หมุน หรือขยายตามค่าระบบของผู้ใช้
+- **Feature:** ขอบเขตความสามารถของผลิตภัณฑ์ที่เป็นเจ้าของ UI, state orchestration, domain logic, types และ styles ที่เกี่ยวข้อง
+- **Feature-based Architecture:** การจัดโครงสร้างโค้ดตามความสามารถของผลิตภัณฑ์ แทนการรวมไฟล์ทุกชนิดไว้ในโฟลเดอร์กลาง
+- **Behavior-preserving Refactor:** การเปลี่ยนโครงสร้างภายในโดยไม่เปลี่ยนผลลัพธ์หรือ interaction ที่ผู้ใช้สังเกตได้
+- **Characterization Test:** การทดสอบที่บันทึกพฤติกรรมปัจจุบันเพื่อป้องกัน refactor เปลี่ยน behavior โดยไม่ตั้งใจ
+- **Presentational Component:** component ที่รับข้อมูลและ callbacks ผ่าน props และไม่จัดการ persistence หรือ business workflow
+- **Feature Hook:** hook ที่ประสาน state, lifecycle และ side effects ภายในขอบเขต Feature
+- **Domain Function:** pure function ที่ทำงานกับแนวคิดทางธุรกิจโดยไม่พึ่ง React, DOM หรือ browser API
+- **Storage Adapter:** ขอบเขตที่รับผิดชอบ storage keys, serialization, validation, versioning และ fallback โดยซ่อนรายละเอียดจาก UI
+- **Derived Data:** ข้อมูลที่คำนวณจาก source of truth เช่น Balance หรือ Category Summary ซึ่งไม่ควรถูกเก็บซ้ำใน state
+- **Public Interface:** types, components หรือ functions ที่ Feature อนุญาตให้ส่วนอื่น import โดยไม่เข้าถึงรายละเอียดภายใน
+- **UI Primitive:** component พื้นฐานที่มีการใช้ซ้ำจริงข้าม Feature เช่น Button, Modal, Card หรือ Toast
+- **Design Token:** ตัวแปร CSS ที่ตั้งชื่อตามความหมายของการออกแบบและใช้เป็นแหล่งค่ากลาง เช่นสี surface, Expense หรือ focus ring
+- **Semantic Token:** Design Token ที่บอกบทบาทของค่าแทนชื่อสีหรือตำแหน่ง เช่น `--color-expense`
+- **Style Ownership:** ขอบเขตว่า Feature หรือ component ใดรับผิดชอบ selectors, responsive rules และ animations ชุดหนึ่ง
+- **CSS Module:** stylesheet ที่ scope class names อยู่ภายใน module เพื่อลดการชนกันและการพึ่งพาข้าม component
+- **Global Foundation:** CSS ระดับแอปที่จำกัดเฉพาะ reset, typography, Theme application และ accessibility policy
+- **Overlay Primitive:** UI foundation ที่ใช้ซ้ำสำหรับ backdrop และ surface โดยไม่เป็นเจ้าของเนื้อหาหรือ workflow ของ Feature
+- **Visual Matrix:** ชุด combination ของ viewport, Theme และ Motion ที่ต้องตรวจเพื่อป้องกัน visual regression
+- **Legacy Selector:** global selector จากโครงสร้างเดิมที่รอการย้ายไปยัง owner ที่ถูกต้องและต้องลบเมื่อไม่มี consumer

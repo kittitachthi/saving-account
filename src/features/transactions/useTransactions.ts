@@ -1,0 +1,7 @@
+import { useEffect, useState } from 'react'
+import { calculateTotals, removeTransaction, restoreTransaction } from './domain'
+import type { RemovedTransaction, Transaction, TransactionType } from './domain'
+import { loadTransactions, saveTransactions } from './storage'
+export type TransactionFilter='all'|TransactionType
+const UNDO_MS=5000
+export const useTransactions=(fallback:Transaction[])=>{const[transactions,setTransactions]=useState(()=>loadTransactions(fallback)),[filter,setFilter]=useState<TransactionFilter>('all'),[pendingDelete,setPendingDelete]=useState<Transaction|null>(null),[removed,setRemoved]=useState<RemovedTransaction|null>(null),[newItemId,setNewItemId]=useState<number|null>(null);useEffect(()=>saveTransactions(transactions),[transactions]);useEffect(()=>{if(!removed)return;const timer=window.setTimeout(()=>setRemoved(null),UNDO_MS);return()=>clearTimeout(timer)},[removed]);const addTransaction=(item:Transaction)=>{setTransactions(current=>[item,...current]);setNewItemId(item.id);window.setTimeout(()=>setNewItemId(null),500)};const confirmDelete=()=>{if(!pendingDelete)return;const result=removeTransaction(transactions,pendingDelete.id);setTransactions(result.transactions);setRemoved(result.removed);setPendingDelete(null)};const undoDelete=()=>{if(!removed)return;setTransactions(current=>restoreTransaction(current,removed));setRemoved(null)};return{transactions,totals:calculateTotals(transactions),filter,setFilter,pendingDelete,setPendingDelete,confirmDelete,removed,undoDelete,newItemId,addTransaction}}
