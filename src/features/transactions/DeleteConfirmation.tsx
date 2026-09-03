@@ -7,11 +7,13 @@ type Props = {
   transaction: Transaction;
   onCancel: () => void;
   onConfirm: () => void;
+  error?: string;
 };
 export function DeleteConfirmation({
   transaction,
   onCancel,
   onConfirm,
+  error,
 }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   useEffect(() => cancelRef.current?.focus(), []);
@@ -40,6 +42,7 @@ export function DeleteConfirmation({
           {transaction.type === "income" ? "+" : "−"}฿
           {money(transaction.amount)}.00
         </strong>
+        {error && <p className={styles.formError} role="alert">{error}</p>}
         <div className={styles.confirmActions}>
           <button ref={cancelRef} onClick={onCancel}>
             ยกเลิก

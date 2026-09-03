@@ -4,6 +4,7 @@ import { AppShell } from "./app/AppShell";
 import { DashboardSummary } from "./features/dashboard";
 import { CategoryChart } from "./features/category-chart";
 import { SettingsSurface } from "./features/settings";
+import { SavingsChart, SavingsGoalForm, useSavingsGoal } from "./features/savings";
 import { useTheme } from "./features/theme";
 import {
   DeleteConfirmation,
@@ -16,9 +17,11 @@ import {
 
 export default function App() {
   const [entryOpen, setEntryOpen] = useState(false),
+    [goalOpen, setGoalOpen] = useState(false),
     [settingsOpen, setSettingsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const transactions = useTransactions(seedTransactions);
+  const savings = useSavingsGoal();
   return (
     <AppShell onOpenSettings={() => setSettingsOpen(true)}>
       <main className={styles.main}>
@@ -27,11 +30,12 @@ export default function App() {
             <h1>สวัสดี, กิตติ 👋</h1>
             <p>นี่คือภาพรวมการเงินของคุณในเดือนนี้</p>
           </div>
-          <button className={styles.primary} onClick={() => setEntryOpen(true)}>
-            ＋ เพิ่มรายการ
-          </button>
+          <div className={styles.headerActions}>
+            <button className={styles.secondary} onClick={() => setGoalOpen(true)}>◎ {savings.goal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมายเงินเก็บ"}</button>
+            <button className={styles.primary} onClick={() => setEntryOpen(true)}>＋ เพิ่มรายการ</button>
+          </div>
         </header>
-        <DashboardSummary totals={transactions.totals} />
+        <DashboardSummary totals={transactions.totals} transactions={transactions.transactions} now={transactions.now} />
         <section className={styles.content}>
           <TransactionPanel
             transactions={transactions.transactions}
@@ -39,19 +43,25 @@ export default function App() {
             newItemId={transactions.newItemId}
             onFilter={transactions.setFilter}
             onRequestDelete={transactions.setPendingDelete}
+            page={transactions.page}
+            now={transactions.now}
+            onPage={transactions.setPage}
           />
           <CategoryChart
             transactions={transactions.transactions}
             expenseTotal={transactions.totals.expense}
           />
+          <SavingsChart transactions={transactions.transactions} saved={transactions.totals.saving} goal={savings.goal} onSetGoal={() => setGoalOpen(true)} />
         </section>
       </main>
       {entryOpen && (
         <TransactionForm
           onClose={() => setEntryOpen(false)}
           onAdd={transactions.addTransaction}
+          availableBalance={transactions.totals.balance}
         />
       )}
+      {goalOpen && <SavingsGoalForm currentGoal={savings.goal} onSave={savings.setGoal} onClose={() => setGoalOpen(false)} />}
       {settingsOpen && (
         <SettingsSurface
           theme={theme}
@@ -64,6 +74,7 @@ export default function App() {
           transaction={transactions.pendingDelete}
           onCancel={() => transactions.setPendingDelete(null)}
           onConfirm={transactions.confirmDelete}
+          error={transactions.deleteError}
         />
       )}
       {transactions.removed && <UndoToast onUndo={transactions.undoDelete} />}

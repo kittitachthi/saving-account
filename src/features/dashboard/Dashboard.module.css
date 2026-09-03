@@ -21,6 +21,22 @@
 .expenseStat { background: var(--color-expense-soft); color: var(--color-expense-accent); }
 .incomeText { color: var(--color-accent); }
 .expenseText { color: var(--color-expense-accent); }
+.cashflow { display: block !important; }
+.cashflow > p { margin-bottom: 8px; }
+.cashflowValues, .cashflowPercents { display: flex; align-items: center; justify-content: space-between; }
+.cashflowValues button { border: 0; padding: 2px; background: transparent; color: var(--color-text-muted); font: inherit; }
+.cashflowValues button:first-child b, .cashflowPercents span:first-child { color: var(--color-accent); }
+.cashflowValues button:last-child b, .cashflowPercents span:last-child { color: var(--color-expense-accent); }
+.cashflowBar { display: flex; overflow: hidden; height: 9px; margin: 9px 0 5px; border-radius: 10px; background: var(--color-chart-track); }
+.cashflowBar button { min-width: 0; height: 100%; border: 0; padding: 0; transition: filter var(--duration-fast) ease, transform var(--duration-fast) ease; }
+.cashflowBar .incomeBar { background: var(--color-accent); transform-origin: right; }
+.cashflowBar .expenseBar { background: var(--color-expense-accent); transform-origin: left; }
+.cashflowBar button:hover, .cashflowBar button:focus-visible { z-index: 1; filter: brightness(1.12); transform: scaleY(1.5); outline: 2px solid var(--color-focus); }
+.cashflowPercents { font-size: 10px; }
+.emptyBar { height: 9px; margin: 9px 0 5px; border-radius: 10px; background: var(--color-chart-track); }
+.cashflow > small { color: var(--color-text-muted); }
+.highestList { max-height: 120px; overflow: hidden; }
+.highestListPinned { max-height: 40vh; overflow: auto; }
 .budget { display: block !important; }
 .budget > div:first-child { display: flex; justify-content: space-between; }
 .budget > div b { color: var(--color-accent); font-size: 11px; }
@@ -28,6 +44,6 @@
 .progress { height: 7px; margin: 8px 0; border-radius: 8px; background: #edf1ef; }
 .progress i { display: block; height: 100%; border-radius: 8px; background: var(--color-accent); transform-origin: left; animation: budget-fill 0.65s ease-out; }
 @keyframes budget-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@media (max-width: 900px) { .stats { grid-template-columns: 1fr 1fr; } .budget { grid-column: 1 / -1; } }
-@media (max-width: 600px) { .hero { min-height: 150px; padding: 24px; } .hero h2 { font-size: 29px; } .rings { right: -90px; } .stats { grid-template-columns: 1fr; } .budget { grid-column: auto; } }
+@media (max-width: 900px) { .stats { grid-template-columns: 1fr 1fr; } .cashflow { grid-column: 1 / -1; } }
+@media (max-width: 600px) { .hero { min-height: 150px; padding: 24px; } .hero h2 { font-size: 29px; } .rings { right: -90px; } .stats { grid-template-columns: 1fr; } .cashflow { grid-column: auto; } }
 @media (prefers-reduced-motion: reduce) { .stats article, .progress i { animation: none; transition: background-color 0.01ms, color 0.01ms, border-color 0.01ms; transform: none; } .stats article:hover { transform: none; } }

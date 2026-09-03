@@ -1,6 +1,7 @@
 import type { Transaction } from "./domain";
 import type { TransactionFilter } from "./useTransactions";
 import styles from "./Transactions.module.css";
+import { filterTransactions, formatTransactionDate, paginateTransactions, sortTransactionsNewestFirst } from "./domain";
 const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
 type Props = {
   transactions: Transaction[];
@@ -8,6 +9,9 @@ type Props = {
   newItemId: number | null;
   onFilter: (filter: TransactionFilter) => void;
   onRequestDelete: (item: Transaction) => void;
+  page: number;
+  now: Date;
+  onPage: (page: number) => void;
 };
 export function TransactionPanel({
   transactions,
@@ -15,11 +19,12 @@ export function TransactionPanel({
   newItemId,
   onFilter,
   onRequestDelete,
+  page,
+  now,
+  onPage,
 }: Props) {
-  const filtered =
-    filter === "all"
-      ? transactions
-      : transactions.filter((item) => item.type === filter);
+  const filtered = sortTransactionsNewestFirst(filterTransactions(transactions, filter));
+  const paged = paginateTransactions(filtered, page);
   return (
     <article className={styles.panel}>
       <div className={styles.panelHead}>
@@ -35,6 +40,7 @@ export function TransactionPanel({
             ["all", "ทั้งหมด"],
             ["income", "รายรับ"],
             ["expense", "รายจ่าย"],
+            ["saving", "เงินเก็บ"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -47,7 +53,7 @@ export function TransactionPanel({
         ))}
       </div>
       <div className={styles.transactionGroup}>
-        {filtered.map((item) => (
+        {paged.items.map((item) => (
           <div
             className={`${styles.transaction} ${newItemId === item.id ? styles.newItem : ""}`}
             key={item.id}
@@ -56,7 +62,7 @@ export function TransactionPanel({
             <div>
               <b>{item.title}</b>
               <small>
-                {item.category} • {item.date}
+                {item.category} • {item.createdAt ? formatTransactionDate(item.createdAt, now) : item.date}
               </small>
             </div>
             <strong className={styles[item.type]}>
@@ -72,7 +78,13 @@ export function TransactionPanel({
             </button>
           </div>
         ))}
+        {!filtered.length && <p className={styles.empty}>ยังไม่มีรายการธุรกรรม</p>}
       </div>
+      {paged.totalPages > 1 && <nav className={styles.pagination} aria-label="หน้ารายการธุรกรรม">
+        <button disabled={paged.currentPage === 1} onClick={() => onPage(paged.currentPage - 1)}>ก่อนหน้า</button>
+        {Array.from({ length: paged.totalPages }, (_, index) => index + 1).map((number) => <button key={number} aria-current={number === paged.currentPage ? "page" : undefined} onClick={() => onPage(number)}>{number}</button>)}
+        <button disabled={paged.currentPage === paged.totalPages} onClick={() => onPage(paged.currentPage + 1)}>ถัดไป</button>
+      </nav>}
     </article>
   );
 }

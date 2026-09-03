@@ -32,49 +32,9 @@
   color: var(--color-accent);
   font-size: 12px;
 }
-.chartWrap {
-  position: relative;
-  width: 210px;
-  height: 210px;
-  margin: 15px auto;
-}
-.donutChart {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  transform: rotate(-90deg);
-}
-.donutTrack,
-.donutSegment {
-  fill: none;
-  stroke-width: 7;
-}
-.donutTrack {
-  stroke: var(--color-chart-track);
-}
-.donutSegment {
-  cursor: pointer;
-  transition:
-    stroke-width var(--duration-fast) ease,
-    filter var(--duration-fast) ease,
-    opacity var(--duration-fast) ease;
-}
-.donutChart:has(.active) .donutSegment:not(.active) {
-  opacity: 0.42;
-}
-.donutSegment.active,
-.donutSegment:hover,
-.donutSegment:focus-visible {
-  stroke-width: 8.7;
-  filter: drop-shadow(0 2px 2px #13281f45);
-  outline: none;
-}
 .chartCenter {
-  position: absolute;
-  inset: 50% auto auto 50%;
   text-align: center;
   pointer-events: none;
-  transform: translate(-50%, -50%);
 }
 .chartCenter b,
 .chartCenter small {
@@ -87,97 +47,14 @@
   color: var(--color-text-muted);
   font-size: 9px;
 }
-.tooltip {
-  position: absolute;
-  bottom: -48px;
-  left: 50%;
-  z-index: 3;
-  width: 180px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-tooltip);
-  transform: translateX(-50%);
-  animation: tooltip-in 0.16s ease-out;
-}
-.tooltip b,
-.tooltip span {
-  display: block;
-}
-.tooltip b {
-  margin-bottom: 3px;
-  font-size: 12px;
-}
-.tooltip span {
-  color: var(--color-text-muted);
-  font-size: 9px;
-}
-.legend {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 11px;
-  margin-top: 51px;
-  color: var(--color-text-muted);
-  font-size: 10px;
-}
-.legend button {
-  display: grid;
-  grid-template-columns: 7px 1fr auto;
-  align-items: center;
-  gap: 6px;
-  padding: 5px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  font-size: 10px;
-}
-.legend button:hover,
-.legend button:focus-visible {
-  background: var(--color-accent-soft);
-  outline: none;
-}
-.legend button i {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-}
-.legend button b {
-  color: var(--color-text);
-}
-@keyframes tooltip-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 5px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
 @media (max-width: 600px) {
   .panel {
     grid-row: 1;
     padding: 17px;
   }
-  .chartWrap {
-    width: 190px;
-    height: 190px;
-  }
-  .tooltip {
-    bottom: -57px;
-  }
-  .legend {
-    margin-top: 60px;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
-  .panel,
-  .donutSegment,
-  .tooltip {
-    animation: none;
+  .panel {
     transition:
       background-color 0.01ms,
       color 0.01ms,
@@ -186,14 +63,5 @@
   }
   .panel:hover {
     transform: none;
-  }
-  .tooltip {
-    transform: translateX(-50%);
-  }
-  .donutSegment.active,
-  .donutSegment:hover,
-  .donutSegment:focus-visible {
-    stroke-width: 7;
-    filter: none;
   }
 }

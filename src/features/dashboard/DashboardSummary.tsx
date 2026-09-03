@@ -1,17 +1,21 @@
 import type { TransactionTotals } from "../transactions/domain";
 import styles from "./Dashboard.module.css";
+import type { Transaction } from "../transactions/domain";
+import { DailyCashflowCard } from "./DailyCashflowCard";
 const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
 export function DashboardSummary({
   totals,
-  budget = 15000,
+  transactions,
+  now,
 }: {
   totals: TransactionTotals;
-  budget?: number;
+  transactions: Transaction[];
+  now: Date;
 }) {
   return (
     <>
       <section className={styles.hero}>
-        <p>ยอดเงินคงเหลือทั้งหมด　◉</p>
+        <p>ยอดเงินพร้อมใช้　◉</p>
         <h2>
           ฿{money(totals.balance)}
           <small>.00</small>
@@ -42,23 +46,7 @@ export function DashboardSummary({
             <small className={styles.expenseText}>↘ 3.2%</small>
           </div>
         </article>
-        <article className={styles.budget}>
-          <div>
-            <p>งบประมาณคงเหลือ</p>
-            <b>{Math.round((totals.expense / budget) * 100)}%</b>
-          </div>
-          <h3>฿{money(budget - totals.expense)}</h3>
-          <div className={styles.progress}>
-            <i
-              style={{
-                width: `${Math.min(100, (totals.expense / budget) * 100)}%`,
-              }}
-            />
-          </div>
-          <small>
-            ใช้ไป ฿{money(totals.expense)} จาก ฿{money(budget)}
-          </small>
-        </article>
+        <DailyCashflowCard transactions={transactions} now={now} />
       </section>
     </>
   );
