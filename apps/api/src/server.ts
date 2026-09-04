@@ -3,15 +3,29 @@ import { createApp } from "./app.js";
 import { parseConfig } from "./config/config.js";
 import { createLogger } from "./config/logger.js";
 import { createDatabase } from "./infrastructure/db/database.js";
+import { registerAuthRoutes } from "./features/auth/auth.routes.js";
+import { AuthService } from "./features/auth/auth.service.js";
+import { createGoogleIdentityProvider } from "./features/auth/google-identity-provider.js";
+import { PrismaAuthRepository } from "./features/auth/prisma-auth.repository.js";
 
 loadEnvironment({ path: new URL("../../../.env", import.meta.url) });
 
 const config = parseConfig(process.env);
 const logger = createLogger(config);
 const database = createDatabase(config.databaseUrl);
+const auth = new AuthService(
+  new PrismaAuthRepository(database.client),
+  createGoogleIdentityProvider({
+    clientId: config.googleClientId,
+    clientSecret: config.googleClientSecret,
+    redirectUri: config.googleRedirectUri,
+  }),
+);
 const app = createApp({
   checkDatabase: () => database.checkConnection(),
   logger,
+  registerRoutes: (app) =>
+    registerAuthRoutes(app, auth, config.nodeEnv === "production"),
 });
 
 const server = app.listen(config.port, () => {

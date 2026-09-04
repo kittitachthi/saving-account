@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
 import styles from "./AppShell.module.css";
-type Props = { children: ReactNode; onOpenSettings: () => void };
-export function AppShell({ children, onOpenSettings }: Props) {
+type Props = {
+  children: ReactNode;
+  displayName: string;
+  onOpenSettings: () => void;
+};
+export function AppShell({ children, displayName, onOpenSettings }: Props) {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
@@ -28,9 +32,9 @@ export function AppShell({ children, onOpenSettings }: Props) {
             ⚙ <span>ตั้งค่า</span>
           </button>
           <div className={styles.profile}>
-            <i>ก</i>
+            <i>{displayName.trim().charAt(0).toLocaleUpperCase() || "?"}</i>
             <div>
-              <b>กิตติ</b>
+              <b>{displayName}</b>
               <small>บัญชีส่วนตัว</small>
             </div>
           </div>

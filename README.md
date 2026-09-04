@@ -31,7 +31,16 @@ docker compose version
 ```powershell
 Copy-Item .env.example .env
 npm run db:generate
+npm run db:migrate
 ```
+
+ตั้งค่า Google OAuth client ให้ redirect URI ตรงกับ `GOOGLE_REDIRECT_URI` ใน `.env` แล้วเพิ่ม verified email ของผู้ทดสอบเข้า Beta Allowlist:
+
+```sh
+npm run beta:allow -- friend@example.com developer-name
+```
+
+คำสั่งนี้เก็บผู้เพิ่มและเวลาที่เพิ่มเพื่อให้ตรวจสอบ Beta Allowlist ย้อนหลังได้ โดยไม่พิมพ์ OAuth secret ออกมา
 
 เปิด PostgreSQL container และตรวจสถานะ:
 
@@ -52,7 +61,7 @@ npm run dev:web
 
 API liveness อยู่ที่ `http://localhost:3000/api/health` และ database readiness อยู่ที่ `http://localhost:3000/api/readiness` เมื่อ PostgreSQL พร้อม ทั้งสอง endpoint จะตอบสถานะสำเร็จ
 
-`db:generate` สร้าง Prisma Client เท่านั้น ยังไม่สร้าง application tables ในฐานข้อมูล schema และ migration แรกจะถูกเพิ่มใน ticket ถัดไป ห้ามใช้ `db push` แทน migration ที่ต้องนำเข้า Git
+`db:generate` สร้าง Prisma Client ส่วน `db:migrate` ใช้ migration ที่นำเข้า Git เพื่อสร้างหรืออัปเดต application tables ห้ามใช้ `db push` แทน migration
 
 คำสั่งที่ใช้บ่อย:
 

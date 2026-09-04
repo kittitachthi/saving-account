@@ -19,7 +19,9 @@ import {
   useTransactions,
 } from "./features/transactions";
 
-export default function App() {
+type AppProps = { displayName?: string };
+
+export default function App({ displayName = "กิตติ" }: AppProps) {
   const [entryOpen, setEntryOpen] = useState(false),
     [goalOpen, setGoalOpen] = useState(false),
     [settingsOpen, setSettingsOpen] = useState(false);
@@ -27,11 +29,14 @@ export default function App() {
   const transactions = useTransactions(seedTransactions);
   const savings = useSavingsGoal();
   return (
-    <AppShell onOpenSettings={() => setSettingsOpen(true)}>
+    <AppShell
+      displayName={displayName}
+      onOpenSettings={() => setSettingsOpen(true)}
+    >
       <main className={styles.main}>
         <header className={styles.header}>
           <div>
-            <h1>สวัสดี, กิตติ 👋</h1>
+            <h1>สวัสดี, {displayName} 👋</h1>
             <p>นี่คือภาพรวมการเงินของคุณในเดือนนี้</p>
           </div>
           <div className={styles.headerActions}>

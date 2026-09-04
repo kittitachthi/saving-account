@@ -9,6 +9,7 @@ export function createLogger(config: ApiConfig) {
         "req.headers.authorization",
         "req.headers.cookie",
         "databaseUrl",
+        "googleClientSecret",
         "sessionToken",
         "invitationToken",
       ],

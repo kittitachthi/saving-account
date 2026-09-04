@@ -5,3 +5,81 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum AuthProvider {
+  GOOGLE
+}
+
+enum WalletRole {
+  OWNER
+  VIEWER
+}
+
+model User {
+  id           String             @id @default(uuid()) @db.Uuid
+  email        String             @unique
+  displayName  String
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  authAccounts AuthAccount[]
+  sessions     Session[]
+  ownedWallets Wallet[]           @relation("WalletOwner")
+  memberships  WalletMembership[]
+}
+
+model AuthAccount {
+  id              String       @id @default(uuid()) @db.Uuid
+  userId          String       @db.Uuid
+  provider        AuthProvider
+  providerSubject String
+  verifiedEmail   String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+}
+
+model Wallet {
+  id          String             @id @default(uuid()) @db.Uuid
+  ownerId     String             @db.Uuid
+  name        String
+  timezone    String             @default("Asia/Bangkok")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  owner       User               @relation("WalletOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships WalletMembership[]
+}
+
+model WalletMembership {
+  walletId String     @db.Uuid
+  userId   String     @db.Uuid
+  role     WalletRole
+  wallet   Wallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user     User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([walletId, userId])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique
+  expiresAt DateTime
+  lastSeenAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BetaAllowlist {
+  email     String   @id
+  addedAt   DateTime @default(now())
+  addedBy   String
+}
+
+model OAuthAttempt {
+  stateHash    String   @id
+  nonce        String
+  codeVerifier String
+  returnTo     String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+}
