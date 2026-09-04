@@ -3,6 +3,7 @@ export type GoogleIdentity = {
   email: string;
   emailVerified: boolean;
   displayName: string;
+  avatarUrl: string | null;
 };
 
 export type OAuthAttempt = {

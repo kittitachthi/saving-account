@@ -10,6 +10,7 @@ type SessionState =
 
 export function Application() {
   const [state, setState] = useState<SessionState>({ status: "loading" });
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -52,6 +53,7 @@ export function Application() {
             Saving Account
           </h1>
           <p className={styles.copy}>เข้าสู่ระบบเพื่อเปิดข้อมูลการเงินของคุณ</p>
+          {notice && <p role="status">{notice}</p>}
           <a
             className={styles.googleButton}
             href={`/api/auth/google/start?returnTo=${encodeURIComponent(returnTo)}`}
@@ -63,5 +65,18 @@ export function Application() {
     );
   }
 
-  return <App displayName={state.session.user.displayName} />;
+  return (
+    <App
+      user={state.session.user}
+      onLogout={async () => {
+        const response = await fetch("/api/auth/logout", {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        if (!response.ok) throw new Error("Logout failed");
+        setNotice("ออกจากระบบแล้ว");
+        setState({ status: "anonymous" });
+      }}
+    />
+  );
 }

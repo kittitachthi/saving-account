@@ -1,4 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Application } from "./Application";
 
@@ -31,6 +38,7 @@ describe("Protected financial application", () => {
             id: "user-1",
             displayName: "Friend",
             email: "friend@example.com",
+            avatarUrl: "https://lh3.googleusercontent.com/friend",
             personalWalletId: "wallet-1",
           },
         }),
@@ -45,5 +53,180 @@ describe("Protected financial application", () => {
     expect(
       screen.queryByText("เข้าสู่ระบบด้วย Google"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the Google Profile Avatar and falls back to the name initial", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json({
+          user: {
+            id: "user-1",
+            displayName: "Friend",
+            email: "friend@example.com",
+            avatarUrl: "https://lh3.googleusercontent.com/friend",
+            personalWalletId: "wallet-1",
+          },
+        }),
+      ),
+    );
+    const { container } = render(<Application />);
+
+    await screen.findByText("สวัสดี, Friend 👋");
+    const images = [...container.querySelectorAll("img")];
+    expect(images).toHaveLength(2);
+    expect(images[0]).toHaveAttribute(
+      "src",
+      "https://lh3.googleusercontent.com/friend",
+    );
+    images.forEach((image) => fireEvent.error(image));
+    expect(container.querySelector("img")).not.toBeInTheDocument();
+    expect(screen.getAllByText("F")).toHaveLength(2);
+  });
+
+  it("opens an accessible Account Menu and restores trigger focus", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json({
+          user: {
+            id: "user-1",
+            displayName: "Friend",
+            email: "friend@example.com",
+            avatarUrl: null,
+            personalWalletId: "wallet-1",
+          },
+        }),
+      ),
+    );
+    render(<Application />);
+    const triggers = await screen.findAllByRole("button", {
+      name: "เปิดเมนูบัญชีของ Friend",
+    });
+
+    await user.click(triggers[0]);
+    const menu = screen.getByRole("region", { name: "เมนูบัญชี" });
+    expect(menu).toHaveTextContent("Friend");
+    expect(menu).toHaveTextContent("friend@example.com");
+    expect(menu).toHaveTextContent("บัญชีส่วนตัว");
+    expect(triggers[0]).toHaveAttribute("aria-expanded", "true");
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "เมนูบัญชี" })).toBeNull();
+    await waitFor(() => expect(triggers[0]).toHaveFocus());
+
+    await user.click(triggers[0]);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("region", { name: "เมนูบัญชี" })).toBeNull();
+  });
+
+  it("confirms Current-Session Logout and reports success on Login", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          user: {
+            id: "user-1",
+            displayName: "Friend",
+            email: "friend@example.com",
+            avatarUrl: null,
+            personalWalletId: "wallet-1",
+          },
+        }),
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Application />);
+    const trigger = (
+      await screen.findAllByRole("button", {
+        name: "เปิดเมนูบัญชีของ Friend",
+      })
+    )[0];
+    await user.click(trigger);
+    await user.click(
+      within(screen.getByRole("region", { name: "เมนูบัญชี" })).getByRole(
+        "button",
+        { name: "ออกจากระบบ" },
+      ),
+    );
+
+    let dialog = screen.getByRole("dialog", { name: "ออกจากระบบหรือไม่?" });
+    expect(
+      within(dialog).getByRole("button", { name: "ยกเลิก" }),
+    ).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(trigger).toHaveFocus());
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "ออกจากระบบ" }));
+    dialog = screen.getByRole("dialog", { name: "ออกจากระบบหรือไม่?" });
+    await user.click(
+      within(dialog).getByRole("button", { name: "ออกจากระบบ" }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "ออกจากระบบแล้ว",
+    );
+    expect(
+      screen.getByRole("link", { name: "เข้าสู่ระบบด้วย Google" }),
+    ).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/logout", {
+      method: "POST",
+      credentials: "same-origin",
+    });
+  });
+
+  it("keeps the Session and allows retry when logout fails", async () => {
+    const user = userEvent.setup();
+    let finishRequest: ((response: Response) => void) | undefined;
+    const pendingResponse = new Promise<Response>((resolve) => {
+      finishRequest = resolve;
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({
+          user: {
+            id: "user-1",
+            displayName: "Friend",
+            email: "friend@example.com",
+            avatarUrl: null,
+            personalWalletId: "wallet-1",
+          },
+        }),
+      )
+      .mockReturnValueOnce(pendingResponse)
+      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Application />);
+    const trigger = (
+      await screen.findAllByRole("button", {
+        name: "เปิดเมนูบัญชีของ Friend",
+      })
+    )[0];
+    await user.click(trigger);
+    await user.click(screen.getByRole("button", { name: "ออกจากระบบ" }));
+    const dialog = screen.getByRole("dialog", { name: "ออกจากระบบหรือไม่?" });
+    await user.click(
+      within(dialog).getByRole("button", { name: "ออกจากระบบ" }),
+    );
+
+    expect(
+      within(dialog).getByRole("button", { name: "กำลังออกจากระบบ…" }),
+    ).toBeDisabled();
+    await user.keyboard("{Escape}");
+    expect(
+      screen.getByRole("dialog", { name: "ออกจากระบบหรือไม่?" }),
+    ).toBeInTheDocument();
+    finishRequest?.(new Response(null, { status: 500 }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง",
+    );
+    expect(screen.getByText("สวัสดี, Friend 👋")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "ออกจากระบบ" }));
+    expect(await screen.findByText("ออกจากระบบแล้ว")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

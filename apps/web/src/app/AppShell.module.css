@@ -63,21 +63,15 @@
 }
 .profile {
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 10px;
   padding: 20px 7px 0;
+  border: 0;
   border-top: 1px solid var(--color-border);
-}
-.profile i {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-style: normal;
-  font-weight: 700;
+  background: none;
+  color: var(--color-text);
+  text-align: left;
 }
 .profile b,
 .profile small {
@@ -87,8 +81,54 @@
   color: var(--color-text-muted);
   font-size: 11px;
 }
-.mobileSettings {
+.mobileSettings,
+.mobileAccount {
   display: none;
+}
+.accountMenu {
+  position: fixed;
+  z-index: 20;
+  bottom: 88px;
+  left: 18px;
+  width: 280px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card-hover);
+}
+.accountIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.accountIdentity b,
+.accountIdentity span,
+.accountIdentity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.accountIdentity span,
+.accountIdentity small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.accountMenu > button {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--color-text);
+  text-align: left;
+}
+.accountMenu > button:hover,
+.accountMenu > button:focus-visible {
+  background: var(--color-accent-soft);
 }
 @media (max-width: 900px) {
   .shell {
@@ -152,6 +192,22 @@
     background: var(--color-accent);
     box-shadow: 0 8px 24px #001d1440;
     color: #fff;
+  }
+  .mobileAccount {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 6;
+    display: grid;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    box-shadow: 0 8px 24px #001d1426;
+  }
+  .accountMenu {
+    inset: 64px 12px auto auto;
+    width: min(280px, calc(100vw - 24px));
   }
   .mobileSettings span {
     position: absolute;

@@ -43,6 +43,7 @@ describe("Prisma authentication persistence", () => {
       email: allowedEmail,
       emailVerified: true,
       displayName: "Allowed Friend",
+      avatarUrl: "https://lh3.googleusercontent.com/first",
     };
 
     const first = await repository.createSessionForAllowedIdentity(
@@ -51,12 +52,19 @@ describe("Prisma authentication persistence", () => {
       new Date(Date.now() + 60_000),
     );
     const second = await repository.createSessionForAllowedIdentity(
-      identity,
+      { ...identity, avatarUrl: "https://lh3.googleusercontent.com/second" },
       `second-${suffix}`,
       new Date(Date.now() + 60_000),
     );
+    const third = await repository.createSessionForAllowedIdentity(
+      { ...identity, avatarUrl: null },
+      `third-${suffix}`,
+      new Date(Date.now() + 60_000),
+    );
 
-    expect(first).toEqual(second);
+    expect(first?.avatarUrl).toBe("https://lh3.googleusercontent.com/first");
+    expect(second?.avatarUrl).toBe("https://lh3.googleusercontent.com/second");
+    expect(third?.avatarUrl).toBeNull();
     expect(first?.personalWalletId).toEqual(expect.any(String));
     expect(
       await database.client.user.count({ where: { email: allowedEmail } }),
@@ -66,6 +74,14 @@ describe("Prisma authentication persistence", () => {
         where: { userId: first!.id, role: "OWNER" },
       }),
     ).toBe(1);
+
+    await repository.revokeSession(`first-${suffix}`);
+    expect(
+      await repository.findUserBySession(`first-${suffix}`, new Date()),
+    ).toBeNull();
+    expect(
+      await repository.findUserBySession(`second-${suffix}`, new Date()),
+    ).toEqual(expect.objectContaining({ id: first!.id, avatarUrl: null }));
   });
 
   it("does not persist an ineligible Google identity", async () => {
@@ -76,6 +92,7 @@ describe("Prisma authentication persistence", () => {
         email: rejectedEmail,
         emailVerified: true,
         displayName: "Rejected Visitor",
+        avatarUrl: null,
       },
       `rejected-token-${suffix}`,
       new Date(Date.now() + 60_000),

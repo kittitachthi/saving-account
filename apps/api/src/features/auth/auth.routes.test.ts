@@ -13,6 +13,7 @@ const user = {
   id: "user-1",
   email: "friend@example.com",
   displayName: "Friend",
+  avatarUrl: "https://lh3.googleusercontent.com/friend",
   personalWalletId: "wallet-1",
 };
 
@@ -57,6 +58,7 @@ function createAuthApp({
       email: " Friend@Example.com ",
       emailVerified: verified,
       displayName: "Friend",
+      avatarUrl: "https://lh3.googleusercontent.com/friend",
     })),
   };
   const auth = new AuthService(repository, google);

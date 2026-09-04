@@ -69,6 +69,7 @@ export function createGoogleIdentityProvider(
         emailVerified: claims.email_verified === true,
         displayName:
           typeof claims.name === "string" ? claims.name : claims.email,
+        avatarUrl: typeof claims.picture === "string" ? claims.picture : null,
       };
     },
   };

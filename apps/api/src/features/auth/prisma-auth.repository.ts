@@ -15,6 +15,7 @@ function toAuthenticatedUser(user: {
   id: string;
   email: string;
   displayName: string;
+  avatarUrl: string | null;
   ownedWallets: Array<{ id: string }>;
 }): AuthenticatedUser {
   const wallet = user.ownedWallets[0];
@@ -23,6 +24,7 @@ function toAuthenticatedUser(user: {
     id: user.id,
     email: user.email,
     displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
     personalWalletId: wallet.id,
   };
 }
@@ -94,7 +96,11 @@ export class PrismaAuthRepository implements AuthRepository {
       if (account) {
         const updated = await transaction.user.update({
           where: { id: account.userId },
-          data: { displayName: identity.displayName, email: identity.email },
+          data: {
+            displayName: identity.displayName,
+            email: identity.email,
+            avatarUrl: identity.avatarUrl,
+          },
           include: { ownedWallets: { orderBy: { createdAt: "asc" } } },
         });
         user = toAuthenticatedUser(updated);
@@ -108,6 +114,7 @@ export class PrismaAuthRepository implements AuthRepository {
           data: {
             email: identity.email,
             displayName: identity.displayName,
+            avatarUrl: identity.avatarUrl,
             authAccounts: {
               create: {
                 provider: "GOOGLE",
@@ -130,6 +137,7 @@ export class PrismaAuthRepository implements AuthRepository {
           id: created.id,
           email: created.email,
           displayName: created.displayName,
+          avatarUrl: created.avatarUrl,
           personalWalletId: wallet.id,
         };
       }

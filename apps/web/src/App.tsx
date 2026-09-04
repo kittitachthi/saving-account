@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import type { AuthenticatedUser } from "@saving-account/contracts";
 import styles from "./App.module.css";
 import { AppShell } from "./app/AppShell";
 import { DashboardSummary } from "./features/dashboard";
 import { CategoryChart } from "./features/category-chart";
+import { LogoutConfirmation } from "./features/account";
 import { SettingsSurface } from "./features/settings";
 import {
   SavingsChart,
@@ -19,24 +21,49 @@ import {
   useTransactions,
 } from "./features/transactions";
 
-type AppProps = { displayName?: string };
+type AppProps = {
+  user?: AuthenticatedUser;
+  onLogout?: () => Promise<void>;
+};
 
-export default function App({ displayName = "กิตติ" }: AppProps) {
+const defaultUser: AuthenticatedUser = {
+  id: "preview-user",
+  displayName: "กิตติ",
+  email: "kitti@example.com",
+  avatarUrl: null,
+  personalWalletId: "preview-wallet",
+};
+
+export default function App({
+  user = defaultUser,
+  onLogout = async () => undefined,
+}: AppProps) {
   const [entryOpen, setEntryOpen] = useState(false),
     [goalOpen, setGoalOpen] = useState(false),
-    [settingsOpen, setSettingsOpen] = useState(false);
+    [settingsOpen, setSettingsOpen] = useState(false),
+    [logoutOpen, setLogoutOpen] = useState(false),
+    [logoutPending, setLogoutPending] = useState(false),
+    [logoutError, setLogoutError] = useState<string | null>(null);
+  const restoreLogoutFocus = useRef<() => void>(() => undefined);
   const { theme, toggleTheme } = useTheme();
   const transactions = useTransactions(seedTransactions);
   const savings = useSavingsGoal();
   return (
     <AppShell
-      displayName={displayName}
+      displayName={user.displayName}
+      email={user.email}
+      avatarUrl={user.avatarUrl}
       onOpenSettings={() => setSettingsOpen(true)}
+      onRequestLogout={(restoreFocus) => {
+        restoreLogoutFocus.current = restoreFocus;
+        setLogoutError(null);
+        setLogoutOpen(true);
+      }}
     >
       <main className={styles.main}>
         <header className={styles.header}>
           <div>
-            <h1>สวัสดี, {displayName} 👋</h1>
+            <h1>สวัสดี, {user.displayName} 👋</h1>
             <p>นี่คือภาพรวมการเงินของคุณในเดือนนี้</p>
           </div>
           <div className={styles.headerActions}>
@@ -112,6 +139,25 @@ export default function App({ displayName = "กิตติ" }: AppProps) {
         />
       )}
       {transactions.removed && <UndoToast onUndo={transactions.undoDelete} />}
+      {logoutOpen && (
+        <LogoutConfirmation
+          pending={logoutPending}
+          error={logoutError}
+          onCancel={() => {
+            setLogoutOpen(false);
+            queueMicrotask(restoreLogoutFocus.current);
+          }}
+          onConfirm={() => {
+            if (logoutPending) return;
+            setLogoutPending(true);
+            setLogoutError(null);
+            void onLogout().catch(() => {
+              setLogoutPending(false);
+              setLogoutError("ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง");
+            });
+          }}
+        />
+      )}
     </AppShell>
   );
 }
