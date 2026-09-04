@@ -1,0 +1,104 @@
+.panel {
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  transition:
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    background-color var(--duration-theme) ease;
+}
+.panel:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+.panelHead,
+.formHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.panelHead h3,
+.formHead h3 {
+  margin: 0 0 3px;
+  font-size: 16px;
+}
+.panelHead p,
+.formHead p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.panelHead button {
+  align-self: start;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--color-saving-soft);
+  color: var(--color-saving);
+  font-weight: 600;
+}
+.center {
+  text-align: center;
+  pointer-events: none;
+}
+.center b {
+  font-size: 20px;
+}
+.center small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+.goalForm {
+  width: min(420px, 100%);
+  padding: 24px;
+  border-radius: var(--radius-dialog);
+  background: var(--color-surface);
+}
+.formHead button {
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 25px;
+}
+.goalForm label {
+  display: grid;
+  gap: 7px;
+  margin: 20px 0 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.goalForm input {
+  padding: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.saveGoal {
+  width: 100%;
+  padding: 11px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--color-saving);
+  color: white;
+  font-weight: 600;
+}
+@media (max-width: 600px) {
+  .panel {
+    padding: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    transition:
+      background-color 0.01ms,
+      color 0.01ms,
+      border-color 0.01ms;
+    transform: none;
+  }
+  .panel:hover {
+    transform: none;
+  }
+}

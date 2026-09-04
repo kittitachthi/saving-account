@@ -1,0 +1,143 @@
+.root {
+  min-width: 0;
+}
+.chartWrap {
+  position: relative;
+  width: min(var(--donut-size), 70vw);
+  aspect-ratio: 1;
+  margin: 15px auto;
+}
+.chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+}
+.track,
+.segment {
+  fill: none;
+  stroke-width: var(--donut-stroke);
+}
+.track {
+  stroke: var(--color-chart-track);
+}
+.segment {
+  cursor: pointer;
+  transition:
+    stroke-width var(--duration-fast) ease,
+    filter var(--duration-fast) ease,
+    opacity var(--duration-fast) ease;
+}
+.segment.inactive {
+  opacity: 0.42;
+}
+.segment.active,
+.segment:hover,
+.segment:focus-visible {
+  stroke-width: var(--donut-active-stroke);
+  filter: drop-shadow(0 2px 2px var(--color-chart-shadow));
+}
+.segment:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+.legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 11px;
+  margin-top: 51px;
+}
+.legend button {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  text-align: left;
+  font-size: 10px;
+}
+.legend button:hover,
+.legend .activeLegend {
+  background: var(--color-accent-soft);
+}
+.legend button:focus-visible {
+  background: var(--color-accent-soft);
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.floatingTooltip {
+  position: fixed;
+  z-index: 50;
+  width: min(220px, calc(100vw - 16px));
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-tooltip);
+  color: var(--color-text);
+  pointer-events: none;
+  animation: tooltip-in 0.16s ease-out;
+}
+.pinnedTooltip {
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  pointer-events: auto;
+}
+.floatingTooltip b,
+.floatingTooltip span {
+  display: block;
+}
+.floatingTooltip b {
+  margin-bottom: 3px;
+  font-size: 12px;
+}
+.floatingTooltip span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .legend {
+    margin-top: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .segment,
+  .floatingTooltip {
+    animation: none;
+    transition: none;
+  }
+  .segment.active,
+  .segment:hover,
+  .segment:focus-visible {
+    stroke-width: var(--donut-stroke);
+    filter: none;
+  }
+}

@@ -1,4 +1,35 @@
-# React + TypeScript + Vite
+# Saving Account
+
+แอปบันทึกรายรับ รายจ่าย และเงินเก็บ พัฒนาด้วย TypeScript monorepo และ npm workspaces
+
+## Workspaces
+
+- `apps/web` — React และ Vite application
+- `apps/api` — ขอบเขตสำหรับ Express API
+- `packages/contracts` — schema และ type ของ HTTP contracts ที่ใช้ข้าม application
+
+## Development
+
+ต้องใช้ Node.js และ npm จากนั้นติดตั้ง dependency และเริ่ม web application จาก repository root:
+
+```sh
+npm install
+npm run dev
+```
+
+## Quality commands
+
+```sh
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+คำสั่งทั้งหมดทำงานจาก repository root โดย npm จะส่งงานต่อไปยัง workspace ที่เกี่ยวข้อง
+
+## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

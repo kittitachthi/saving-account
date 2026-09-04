@@ -1,18 +1,21 @@
 {
-  "name": "ai-agent",
+  "name": "saving-account",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run dev --workspace @saving-account/web",
+    "build": "npm run build --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "lint": "oxlint",
-    "test": "vitest run",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "preview": "npm run preview --workspace @saving-account/web"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
@@ -28,6 +31,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^29.1.1",
     "oxlint": "^1.79.0",
+    "prettier": "^3.6.2",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
