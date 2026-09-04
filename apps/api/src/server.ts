@@ -28,13 +28,13 @@ async function shutdown(signal: string) {
   const deadline = setTimeout(() => {
     logger.error({ signal }, "API shutdown deadline exceeded");
     server.closeAllConnections();
-    process.exitCode = 1;
+    process.exit(1);
   }, 10_000);
   deadline.unref();
 
   server.close(async (error) => {
-    clearTimeout(deadline);
     await database.disconnect();
+    clearTimeout(deadline);
     process.exitCode = error ? 1 : 0;
   });
 }

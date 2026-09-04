@@ -21,7 +21,6 @@ export function createApp({
   const app = express();
 
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "100kb" }));
   app.use((request, response, next) => {
     const requestId = request.header("x-request-id") ?? randomUUID();
     response.locals.requestId = requestId;
@@ -39,6 +38,7 @@ export function createApp({
     });
     next();
   });
+  app.use(express.json({ limit: "100kb" }));
 
   registerRoutes?.(app);
 

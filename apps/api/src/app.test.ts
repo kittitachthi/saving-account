@@ -67,6 +67,7 @@ describe("API operational endpoints", () => {
 
     expect(invalidJson.status).toBe(400);
     expect(invalidJson.body.error.code).toBe("BAD_REQUEST");
+    expect(invalidJson.headers["x-request-id"]).toEqual(expect.any(String));
     expect(unexpected.status).toBe(500);
     expect(unexpected.body).toEqual({
       error: { code: "INTERNAL_ERROR", message: "Unexpected server error" },
