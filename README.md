@@ -72,6 +72,12 @@ docker ps --filter publish=5173
 
 Vite ใช้ generated dependency cache ใน temporary directory ของระบบเพื่อหลีกเลี่ยง file-lock จาก repository ที่ sync ด้วย OneDrive; cache นี้ไม่ใช่ source code และสร้างใหม่ได้
 
+เมื่อ Web และ API ทำงานอยู่ ตรวจ topology, `/api` proxy และ Google callback URI ได้ด้วย:
+
+```sh
+npm run test:smoke:dev
+```
+
 API liveness อยู่ที่ `http://localhost:3000/api/health` และ database readiness อยู่ที่ `http://localhost:3000/api/readiness` เมื่อ PostgreSQL พร้อม ทั้งสอง endpoint จะตอบสถานะสำเร็จ
 
 `db:generate` สร้าง Prisma Client ส่วน `db:migrate` ใช้ migration ที่นำเข้า Git เพื่อสร้างหรืออัปเดต application tables ห้ามใช้ `db push` แทน migration

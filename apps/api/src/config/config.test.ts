@@ -42,6 +42,17 @@ describe("API configuration", () => {
     ).toThrow("Invalid API configuration: APP_ORIGIN");
   });
 
+  it.each([
+    "http://localhost:5173/base",
+    "http://localhost:5173/?query=value",
+    "http://localhost:5173/#fragment",
+    "http://user:password@localhost:5173",
+  ])("rejects APP_ORIGIN values that are not an origin: %s", (appOrigin) => {
+    expect(() =>
+      parseConfig({ ...validEnvironment, APP_ORIGIN: appOrigin }),
+    ).toThrow("Invalid API configuration: APP_ORIGIN");
+  });
+
   it("fails fast without printing secret values", () => {
     const secret = "postgresql://user:do-not-print@localhost/database";
 

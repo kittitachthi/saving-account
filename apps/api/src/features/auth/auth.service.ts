@@ -11,6 +11,19 @@ function hashSecret(secret: string) {
   return createHash("sha256").update(secret).digest("hex");
 }
 
+function isSafeInternalPath(path: string) {
+  const hasControlCharacter = [...path].some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint <= 31 || codePoint === 127;
+  });
+  return (
+    path.startsWith("/") &&
+    !path.startsWith("//") &&
+    !path.includes("\\") &&
+    !hasControlCharacter
+  );
+}
+
 export class AuthenticationRejectedError extends Error {}
 
 export class AuthService {
@@ -21,8 +34,7 @@ export class AuthService {
   ) {}
 
   async begin(returnTo: string) {
-    const safeReturnTo =
-      /^\/(?!\/)/.test(returnTo) && !returnTo.includes("\\") ? returnTo : "/";
+    const safeReturnTo = isSafeInternalPath(returnTo) ? returnTo : "/";
     const request = await this.google.createAuthorizationRequest();
     await this.repository.saveOAuthAttempt({
       state: request.state,

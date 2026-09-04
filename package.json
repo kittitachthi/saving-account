@@ -24,6 +24,7 @@
     "format:check": "prettier --check .",
     "lint": "oxlint",
     "test": "npm run test --workspaces --if-present",
+    "test:smoke:dev": "node scripts/smoke-dev-topology.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "preview": "npm run preview --workspace @saving-account/web"
   },

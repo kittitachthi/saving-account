@@ -94,6 +94,13 @@ describe("Google authentication", () => {
     expect(repository.saveOAuthAttempt).toHaveBeenLastCalledWith(
       expect.objectContaining({ returnTo: "/" }),
     );
+
+    await request(app).get(
+      "/api/auth/google/start?returnTo=%2Fwallet%0ASet-Cookie%3Aunsafe",
+    );
+    expect(repository.saveOAuthAttempt).toHaveBeenLastCalledWith(
+      expect.objectContaining({ returnTo: "/" }),
+    );
   });
 
   it("creates a Session for an allowed verified Google identity", async () => {

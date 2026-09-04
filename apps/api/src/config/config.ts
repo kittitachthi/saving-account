@@ -19,10 +19,25 @@ const environmentSchema = z
     const appOrigin = new URL(environment.APP_ORIGIN);
     const googleRedirect = new URL(environment.GOOGLE_REDIRECT_URI);
     if (
+      appOrigin.pathname !== "/" ||
+      appOrigin.search ||
+      appOrigin.hash ||
+      appOrigin.username ||
+      appOrigin.password
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["APP_ORIGIN"],
+        message: "must contain an origin only",
+      });
+    }
+    if (
       googleRedirect.origin !== appOrigin.origin ||
       googleRedirect.pathname !== "/api/auth/google/callback" ||
       googleRedirect.search ||
-      googleRedirect.hash
+      googleRedirect.hash ||
+      googleRedirect.username ||
+      googleRedirect.password
     ) {
       context.addIssue({
         code: "custom",
@@ -60,7 +75,7 @@ export function parseConfig(
     nodeEnv: result.data.NODE_ENV,
     port: result.data.PORT,
     databaseUrl: result.data.DATABASE_URL,
-    appOrigin: result.data.APP_ORIGIN,
+    appOrigin: new URL(result.data.APP_ORIGIN).origin,
     googleClientId: result.data.GOOGLE_CLIENT_ID,
     googleClientSecret: result.data.GOOGLE_CLIENT_SECRET,
     googleRedirectUri: result.data.GOOGLE_REDIRECT_URI,
