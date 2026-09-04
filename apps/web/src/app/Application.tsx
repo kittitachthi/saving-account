@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { AuthSessionResponse } from "@saving-account/contracts";
 import App from "../App";
+import { useTheme } from "../features/theme";
+import { MarketingPage } from "../features/marketing/MarketingPage";
 import styles from "./Application.module.css";
 
 type SessionState =
@@ -11,6 +13,7 @@ type SessionState =
 export function Application() {
   const [state, setState] = useState<SessionState>({ status: "loading" });
   const [notice, setNotice] = useState<string | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,21 +50,12 @@ export function Application() {
   if (state.status === "anonymous") {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     return (
-      <main className={styles.centered}>
-        <section className={styles.signIn} aria-labelledby="sign-in-title">
-          <h1 className={styles.title} id="sign-in-title">
-            Saving Account
-          </h1>
-          <p className={styles.copy}>เข้าสู่ระบบเพื่อเปิดข้อมูลการเงินของคุณ</p>
-          {notice && <p role="status">{notice}</p>}
-          <a
-            className={styles.googleButton}
-            href={`/api/auth/google/start?returnTo=${encodeURIComponent(returnTo)}`}
-          >
-            เข้าสู่ระบบด้วย Google
-          </a>
-        </section>
-      </main>
+      <MarketingPage
+        notice={notice}
+        returnTo={returnTo}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
     );
   }
 
@@ -74,7 +68,6 @@ export function Application() {
           credentials: "same-origin",
         });
         if (!response.ok) throw new Error("Logout failed");
-        setNotice("ออกจากระบบแล้ว");
         setState({ status: "anonymous" });
       }}
     />

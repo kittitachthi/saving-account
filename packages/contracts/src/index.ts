@@ -9,3 +9,13 @@ export type AuthenticatedUser = {
 export type AuthSessionResponse = {
   user: AuthenticatedUser;
 };
+
+export type BetaWaitlistRequest = {
+  email: string;
+  consent: true;
+  consentVersion: string;
+};
+
+export type BetaWaitlistResponse = {
+  message: string;
+};

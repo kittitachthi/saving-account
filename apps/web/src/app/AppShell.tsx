@@ -61,7 +61,7 @@ export function AppShell({
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <b>฿</b>
-          <strong>บันทึกเงิน</strong>
+          <strong>Pocka</strong>
         </div>
         <nav className={styles.nav}>
           <button className={`${styles.navButton} ${styles.active}`}>

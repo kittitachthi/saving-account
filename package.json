@@ -19,6 +19,8 @@
     "db:generate": "prisma generate --config prisma.config.ts",
     "db:migrate": "prisma migrate deploy --config prisma.config.ts",
     "beta:allow": "npm run beta:allow --workspace @saving-account/api --",
+    "beta:approve": "npm run beta:approve --workspace @saving-account/api --",
+    "beta:decline": "npm run beta:decline --workspace @saving-account/api --",
     "build": "npm run build --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -8,15 +8,18 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "beta:allow": "tsx src/scripts/allow-beta-user.ts",
+    "beta:approve": "tsx src/scripts/approve-beta-user.ts",
+    "beta:decline": "tsx src/scripts/decline-beta-user.ts",
     "test": "vitest run",
     "typecheck": "tsc -b"
   },
   "dependencies": {
-    "@saving-account/contracts": "*",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@saving-account/contracts": "*",
     "dotenv": "^17.2.2",
     "express": "^5.2.1",
+    "nodemailer": "^7.0.0",
     "openid-client": "^6.8.1",
     "pg": "^8.23.0",
     "pino": "^10.3.1",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/nodemailer": "^7.0.0",
     "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
     "prisma": "^7.10.0",

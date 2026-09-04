@@ -15,6 +15,23 @@ enum WalletRole {
   VIEWER
 }
 
+enum BetaWaitlistStatus {
+  PENDING
+  APPROVED
+  DECLINED
+}
+
+enum NotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum NotificationKind {
+  BETA_APPROVED
+}
+
 model User {
   id           String             @id @default(uuid()) @db.Uuid
   email        String             @unique
@@ -74,6 +91,34 @@ model BetaAllowlist {
   email     String   @id
   addedAt   DateTime @default(now())
   addedBy   String
+}
+
+model BetaWaitlistEntry {
+  email          String             @id
+  status         BetaWaitlistStatus @default(PENDING)
+  consentVersion String
+  consentedAt    DateTime           @default(now())
+  requestedAt    DateTime           @default(now())
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  approvedAt     DateTime?
+}
+
+model NotificationOutbox {
+  id             String             @id @default(uuid()) @db.Uuid
+  kind           NotificationKind
+  dedupeKey      String             @unique
+  recipientEmail String
+  payload        Json
+  status         NotificationStatus @default(PENDING)
+  attempts       Int                @default(0)
+  nextAttemptAt  DateTime           @default(now())
+  sentAt         DateTime?
+  lastError      String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([status, nextAttemptAt])
 }
 
 model OAuthAttempt {

@@ -24,6 +24,30 @@ describe("API configuration", () => {
       googleClientSecret: validEnvironment.GOOGLE_CLIENT_SECRET,
       googleRedirectUri: validEnvironment.GOOGLE_REDIRECT_URI,
       logLevel: "silent",
+      smtp: null,
+    });
+  });
+
+  it("requires complete SMTP configuration when email delivery is enabled", () => {
+    expect(() =>
+      parseConfig({ ...validEnvironment, SMTP_HOST: "smtp.example.com" }),
+    ).toThrow("Invalid API configuration: SMTP_HOST");
+
+    expect(
+      parseConfig({
+        ...validEnvironment,
+        SMTP_HOST: "smtp.example.com",
+        SMTP_USER: "mailer",
+        SMTP_PASSWORD: "secret",
+        SMTP_FROM: "Pocka <hello@example.com>",
+      }).smtp,
+    ).toEqual({
+      host: "smtp.example.com",
+      port: 587,
+      secure: false,
+      user: "mailer",
+      password: "secret",
+      from: "Pocka <hello@example.com>",
     });
   });
 

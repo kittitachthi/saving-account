@@ -13,13 +13,16 @@ describe("Protected financial application", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("offers Google Sign-in without rendering financial data to an anonymous user", async () => {
+    const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
     );
     render(<Application />);
 
-    const signIn = await screen.findByRole("link", {
+    expect(await screen.findByText("เงินหายไปไหน")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "เข้าสู่ระบบ" }));
+    const signIn = screen.getByRole("link", {
       name: "เข้าสู่ระบบด้วย Google",
     });
     expect(signIn).toHaveAttribute(
@@ -27,6 +30,100 @@ describe("Protected financial application", () => {
       "/api/auth/google/start?returnTo=%2F",
     );
     expect(screen.queryByText("ค่าอาหารกลางวัน")).not.toBeInTheDocument();
+  });
+
+  it("submits a neutral Beta Waitlist request from the Marketing Page", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Application />);
+
+    await screen.findByRole("heading", { name: "ขอเข้าร่วม Private Beta" });
+    await user.type(screen.getByLabelText("อีเมล"), "friend@example.com");
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "ขอเข้าร่วม Beta" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("รับคำขอแล้ว");
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/beta/waitlist",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          email: "friend@example.com",
+          consent: true,
+          consentVersion: "2026-09-04",
+        }),
+      }),
+    );
+  });
+
+  it("requires Waitlist consent and reports a neutral request failure", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 400 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<Application />);
+    await screen.findByLabelText("อีเมล");
+    await user.type(screen.getByLabelText("อีเมล"), "friend@example.com");
+    await user.click(screen.getByRole("button", { name: "ขอเข้าร่วม Beta" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ส่งคำขอไม่สำเร็จ",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "ขอเข้าร่วม Beta" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ส่งคำขอไม่สำเร็จ",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps Login focus and Google treatment in sync with the theme", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+    );
+    render(<Application />);
+
+    const login = await screen.findByRole("button", { name: "เข้าสู่ระบบ" });
+    await user.click(login);
+    const google = screen.getByRole("link", { name: "เข้าสู่ระบบด้วย Google" });
+    expect(google.className).not.toContain("googleDark");
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "เปลี่ยนเป็นธีมมืด",
+      }),
+    );
+    expect(google.className).toContain("googleDark");
+    await user.tab();
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "ปิดหน้าต่างเข้าสู่ระบบ",
+      }),
+    ).toHaveFocus();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(login).toHaveFocus());
+  });
+
+  it("closes Login on the backdrop and restores trigger focus", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
+    );
+    render(<Application />);
+    const login = await screen.findByRole("button", { name: "เข้าสู่ระบบ" });
+    await user.click(login);
+    fireEvent.mouseDown(screen.getByRole("dialog").parentElement!);
+    await waitFor(() => expect(login).toHaveFocus());
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders the financial application after validating the Session", async () => {
@@ -169,7 +266,7 @@ describe("Protected financial application", () => {
       "ออกจากระบบแล้ว",
     );
     expect(
-      screen.getByRole("link", { name: "เข้าสู่ระบบด้วย Google" }),
+      screen.getByRole("button", { name: "เข้าสู่ระบบ" }),
     ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/logout", {
       method: "POST",

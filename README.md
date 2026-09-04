@@ -40,6 +40,14 @@ npm run db:migrate
 npm run beta:allow -- friend@example.com developer-name
 ```
 
+ผู้สนใจทั่วไปสามารถส่งคำขอผ่าน Beta Waitlist บนหน้า Marketing ได้ ผู้ดูแลอนุมัติคำขอและเพิ่มเข้า Allowlist แบบ atomic ด้วย:
+
+```sh
+npm run beta:approve -- friend@example.com developer-name
+```
+
+หากตั้งค่า `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASSWORD` และ `SMTP_FROM` ครบ API จะเปิด notification worker และส่งอีเมลต้อนรับจาก durable outbox โดยอัตโนมัติ หากยังไม่ตั้งค่า การอนุมัติและ outbox ยังทำงาน แต่จะยังไม่ส่งอีเมลออก
+
 คำสั่งนี้เก็บผู้เพิ่มและเวลาที่เพิ่มเพื่อให้ตรวจสอบ Beta Allowlist ย้อนหลังได้ โดยไม่พิมพ์ OAuth secret ออกมา
 
 เปิด PostgreSQL container และตรวจสถานะ:

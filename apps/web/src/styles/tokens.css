@@ -39,6 +39,27 @@
   --radius-dialog: 16px;
   --duration-fast: 0.2s;
   --duration-theme: 0.24s;
+  --color-marketing-glow-inner: #b9f6d5;
+  --color-marketing-glow-outer: #dff9ea;
+  --color-marketing-float: #ffffffdf;
+  --color-marketing-float-border: #ffffff80;
+  --color-marketing-float-text: #25342f;
+  --color-marketing-float-muted: #6d7b76;
+  --color-marketing-beta-start: #0b7657;
+  --color-marketing-beta-end: #15906b;
+  --color-marketing-beta-copy: #c9f5e4;
+  --color-marketing-privacy-copy: #d9f8ec;
+  --color-marketing-form: #fff;
+  --color-marketing-form-text: #20302a;
+  --color-marketing-form-muted: #697771;
+  --color-marketing-input-border: #cfd8d4;
+  --color-marketing-error: #b33a2b;
+  --color-marketing-chart-secondary: #64c6a3;
+  --color-marketing-chart-tertiary: #f1bb67;
+  --shadow-marketing-cta: 0 12px 26px #087f5b35;
+  --shadow-marketing-mascot: 0 28px 35px #174c3630;
+  --shadow-marketing-float: 0 16px 40px #173f3020;
+  --shadow-marketing-preview: 0 30px 80px #183d2d18;
 }
 
 html[data-theme="dark"] {
@@ -74,4 +95,12 @@ html[data-theme="dark"] {
   --shadow-overlay: 0 24px 70px #0009;
   --shadow-settings: 0 20px 60px #0009;
   --shadow-tooltip: 0 12px 35px #0009;
+  --color-marketing-glow-inner: #226a50;
+  --color-marketing-glow-outer: #173d30;
+  --color-marketing-float: #20332de8;
+  --color-marketing-float-border: #ffffff24;
+  --color-marketing-float-text: #ecf4f1;
+  --color-marketing-float-muted: #a6b9b2;
+  --color-marketing-form: #f7faf8;
+  --shadow-marketing-preview: 0 30px 80px #0006;
 }

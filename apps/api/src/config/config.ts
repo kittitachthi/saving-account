@@ -14,6 +14,12 @@ const environmentSchema = z
     LOG_LEVEL: z
       .enum(["silent", "fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(587),
+    SMTP_SECURE: z.enum(["true", "false"]).default("false"),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASSWORD: z.string().min(1).optional(),
+    SMTP_FROM: z.string().min(1).optional(),
   })
   .superRefine((environment, context) => {
     const appOrigin = new URL(environment.APP_ORIGIN);
@@ -29,6 +35,19 @@ const environmentSchema = z
         code: "custom",
         path: ["APP_ORIGIN"],
         message: "must contain an origin only",
+      });
+    }
+    const smtpValues = [
+      environment.SMTP_HOST,
+      environment.SMTP_USER,
+      environment.SMTP_PASSWORD,
+      environment.SMTP_FROM,
+    ];
+    if (smtpValues.some(Boolean) && !smtpValues.every(Boolean)) {
+      context.addIssue({
+        code: "custom",
+        path: ["SMTP_HOST"],
+        message: "SMTP configuration must be complete",
       });
     }
     if (
@@ -58,6 +77,34 @@ const environmentSchema = z
   });
 
 export type ApiConfig = ReturnType<typeof parseConfig>;
+export type SmtpConfig = {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  password: string;
+  from: string;
+};
+
+function smtpConfig(
+  environment: z.infer<typeof environmentSchema>,
+): SmtpConfig | null {
+  const {
+    SMTP_HOST: host,
+    SMTP_USER: user,
+    SMTP_PASSWORD: password,
+    SMTP_FROM: from,
+  } = environment;
+  if (!host || !user || !password || !from) return null;
+  return {
+    host,
+    port: environment.SMTP_PORT,
+    secure: environment.SMTP_SECURE === "true",
+    user,
+    password,
+    from,
+  };
+}
 
 export function parseConfig(
   environment: NodeJS.ProcessEnv | Record<string, string | undefined>,
@@ -80,5 +127,6 @@ export function parseConfig(
     googleClientSecret: result.data.GOOGLE_CLIENT_SECRET,
     googleRedirectUri: result.data.GOOGLE_REDIRECT_URI,
     logLevel: result.data.LOG_LEVEL,
+    smtp: smtpConfig(result.data),
   };
 }
