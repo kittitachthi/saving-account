@@ -25,7 +25,11 @@ const app = createApp({
   checkDatabase: () => database.checkConnection(),
   logger,
   registerRoutes: (app) =>
-    registerAuthRoutes(app, auth, config.nodeEnv === "production"),
+    registerAuthRoutes(app, auth, {
+      appOrigin: config.appOrigin,
+      googleRedirectUri: config.googleRedirectUri,
+      secureCookies: config.nodeEnv === "production",
+    }),
 });
 
 const server = app.listen(config.port, () => {

@@ -20,6 +20,8 @@ function createAuthApp({
   allowed = true,
   verified = true,
   secureCookies = false,
+  appOrigin = "http://localhost:5173",
+  googleRedirectUri = "http://localhost:5173/api/auth/google/callback",
 } = {}) {
   let attempt: OAuthAttempt | null = null;
   let activeSession = false;
@@ -61,7 +63,12 @@ function createAuthApp({
   return {
     app: createApp({
       checkDatabase: vi.fn(),
-      registerRoutes: (app) => registerAuthRoutes(app, auth, secureCookies),
+      registerRoutes: (app) =>
+        registerAuthRoutes(app, auth, {
+          appOrigin,
+          googleRedirectUri,
+          secureCookies,
+        }),
     }),
     repository,
     google,
@@ -98,7 +105,7 @@ describe("Google authentication", () => {
     );
 
     expect(callback.status).toBe(302);
-    expect(callback.headers.location).toBe("/wallet");
+    expect(callback.headers.location).toBe("http://localhost:5173/wallet");
     const sessionCookie = callback.headers["set-cookie"]?.[0];
     expect(sessionCookie).toContain("saving_account_session=");
     expect(sessionCookie).toContain("Max-Age=604800");
@@ -106,7 +113,9 @@ describe("Google authentication", () => {
     expect(sessionCookie).toContain("HttpOnly");
     expect(sessionCookie).toContain("SameSite=Lax");
     expect(google.consumeAuthorizationResponse).toHaveBeenCalledWith(
-      expect.any(URL),
+      new URL(
+        "http://localhost:5173/api/auth/google/callback?state=state-1&code=code-1",
+      ),
       expect.objectContaining({ nonce: "nonce-1", codeVerifier: "verifier-1" }),
     );
     expect(repository.createSessionForAllowedIdentity).toHaveBeenCalledWith(
@@ -117,6 +126,26 @@ describe("Google authentication", () => {
     const session = await browser.get("/api/auth/session");
     expect(session.status).toBe(200);
     expect(session.body).toEqual({ user });
+  });
+
+  it("ignores request host headers when creating callback and return URLs", async () => {
+    const { app, google } = createAuthApp();
+    await request(app).get(
+      "/api/auth/google/start?returnTo=/wallet?tab=recent",
+    );
+    const response = await request(app)
+      .get("/api/auth/google/callback?state=state-1&code=code-1")
+      .set("host", "attacker.example");
+
+    expect(google.consumeAuthorizationResponse).toHaveBeenCalledWith(
+      new URL(
+        "http://localhost:5173/api/auth/google/callback?state=state-1&code=code-1",
+      ),
+      expect.anything(),
+    );
+    expect(response.headers.location).toBe(
+      "http://localhost:5173/wallet?tab=recent",
+    );
   });
 
   it.each([

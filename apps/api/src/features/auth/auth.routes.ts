@@ -15,11 +15,16 @@ function readCookie(request: Request, name: string) {
   return undefined;
 }
 
-function callbackUrl(request: Request) {
-  return new URL(
-    request.originalUrl,
-    `${request.protocol}://${request.get("host")}`,
-  );
+type AuthRouteConfig = {
+  appOrigin: string;
+  googleRedirectUri: string;
+  secureCookies: boolean;
+};
+
+function callbackUrl(request: Request, googleRedirectUri: string) {
+  const callback = new URL(googleRedirectUri);
+  callback.search = new URL(request.originalUrl, callback).search;
+  return callback;
 }
 
 function rejectAuthentication(response: Response) {
@@ -34,7 +39,7 @@ function rejectAuthentication(response: Response) {
 export function registerAuthRoutes(
   app: Express,
   auth: AuthService,
-  secureCookies: boolean,
+  config: AuthRouteConfig,
 ) {
   app.get("/api/auth/google/start", async (request, response) => {
     const result = await auth.begin(
@@ -51,17 +56,17 @@ export function registerAuthRoutes(
 
     try {
       const result = await auth.complete(
-        callbackUrl(request),
+        callbackUrl(request, config.googleRedirectUri),
         request.query.state,
       );
       response.cookie(SESSION_COOKIE, result.sessionToken, {
         httpOnly: true,
-        secure: secureCookies,
+        secure: config.secureCookies,
         sameSite: "lax",
         path: "/",
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
-      response.redirect(result.returnTo);
+      response.redirect(new URL(result.returnTo, config.appOrigin).href);
     } catch (error) {
       if (error instanceof AuthenticationRejectedError) {
         rejectAuthentication(response);
@@ -88,7 +93,7 @@ export function registerAuthRoutes(
     if (token) await auth.logout(token);
     response.clearCookie(SESSION_COOKIE, {
       httpOnly: true,
-      secure: secureCookies,
+      secure: config.secureCookies,
       sameSite: "lax",
       path: "/",
     });

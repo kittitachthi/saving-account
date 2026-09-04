@@ -34,7 +34,7 @@ npm run db:generate
 npm run db:migrate
 ```
 
-ตั้งค่า Google OAuth client ให้ redirect URI ตรงกับ `GOOGLE_REDIRECT_URI` ใน `.env` แล้วเพิ่ม verified email ของผู้ทดสอบเข้า Beta Allowlist:
+ตั้งค่า `APP_ORIGIN=http://localhost:5173` และให้ Google OAuth client มี Authorized redirect URI ตรงกับ `GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback` ใน `.env` ทุกตัวอักษร จากนั้นเพิ่ม verified email ของผู้ทดสอบเข้า Beta Allowlist:
 
 ```sh
 npm run beta:allow -- friend@example.com developer-name
@@ -58,6 +58,19 @@ npm run dev:api
 # terminal 2
 npm run dev:web
 ```
+
+เปิด application ผ่าน `http://localhost:5173` เสมอ โดย Vite จะ proxy `/api` ไป Express ที่ port 3000 หาก port 5173 หรือ 3000 ถูกใช้งาน startup จะหยุดพร้อมข้อความให้ตรวจ development process และ Docker container ที่รันค้างอยู่ แทนการเปลี่ยนไปใช้ port อื่นโดยไม่แจ้ง
+
+ตรวจ process หรือ container ที่ครอบครอง port ก่อนหยุดเฉพาะ target ที่ยืนยันแล้ว:
+
+```powershell
+Get-NetTCPConnection -LocalPort 3000,5173 -State Listen
+docker ps --filter publish=5173
+```
+
+หลังแก้ `APP_ORIGIN`, `GOOGLE_REDIRECT_URI` หรือ Google credentials ต้อง restart API ส่วนการเพิ่ม Beta Allowlist ไม่ต้อง restart
+
+Vite ใช้ generated dependency cache ใน temporary directory ของระบบเพื่อหลีกเลี่ยง file-lock จาก repository ที่ sync ด้วย OneDrive; cache นี้ไม่ใช่ source code และสร้างใหม่ได้
 
 API liveness อยู่ที่ `http://localhost:3000/api/health` และ database readiness อยู่ที่ `http://localhost:3000/api/readiness` เมื่อ PostgreSQL พร้อม ทั้งสอง endpoint จะตอบสถานะสำเร็จ
 

@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "dev": "npm run dev:web",
+    "predev:web": "node scripts/check-port.mjs 5173 web",
     "dev:web": "npm run dev --workspace @saving-account/web",
+    "predev:api": "node scripts/check-port.mjs 3000 api",
     "dev:api": "npm run dev --workspace @saving-account/api",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
