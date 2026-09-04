@@ -48,4 +48,29 @@ describe("API operational endpoints", () => {
       error: { code: "NOT_FOUND", message: "Route not found" },
     });
   });
+
+  it("distinguishes invalid JSON from an unexpected server error", async () => {
+    const app = createApp({
+      checkDatabase: vi.fn(),
+      registerRoutes: (router) => {
+        router.get("/api/failure", () => {
+          throw new Error("database password must stay private");
+        });
+      },
+    });
+
+    const invalidJson = await request(app)
+      .post("/api/missing")
+      .set("content-type", "application/json")
+      .send('{"broken"');
+    const unexpected = await request(app).get("/api/failure");
+
+    expect(invalidJson.status).toBe(400);
+    expect(invalidJson.body.error.code).toBe("BAD_REQUEST");
+    expect(unexpected.status).toBe(500);
+    expect(unexpected.body).toEqual({
+      error: { code: "INTERNAL_ERROR", message: "Unexpected server error" },
+    });
+    expect(JSON.stringify(unexpected.body)).not.toContain("password");
+  });
 });

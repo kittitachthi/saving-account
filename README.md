@@ -52,6 +52,8 @@ npm run dev:web
 
 API liveness อยู่ที่ `http://localhost:3000/api/health` และ database readiness อยู่ที่ `http://localhost:3000/api/readiness` เมื่อ PostgreSQL พร้อม ทั้งสอง endpoint จะตอบสถานะสำเร็จ
 
+`db:generate` สร้าง Prisma Client เท่านั้น ยังไม่สร้าง application tables ในฐานข้อมูล schema และ migration แรกจะถูกเพิ่มใน ticket ถัดไป ห้ามใช้ `db push` แทน migration ที่ต้องนำเข้า Git
+
 คำสั่งที่ใช้บ่อย:
 
 ```sh

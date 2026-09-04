@@ -18,11 +18,24 @@ const server = app.listen(config.port, () => {
   logger.info({ port: config.port }, "API listening");
 });
 
+let shuttingDown = false;
+
 async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   logger.info({ signal }, "API shutting down");
-  server.close(async () => {
+
+  const deadline = setTimeout(() => {
+    logger.error({ signal }, "API shutdown deadline exceeded");
+    server.closeAllConnections();
+    process.exitCode = 1;
+  }, 10_000);
+  deadline.unref();
+
+  server.close(async (error) => {
+    clearTimeout(deadline);
     await database.disconnect();
-    process.exitCode = 0;
+    process.exitCode = error ? 1 : 0;
   });
 }
 
