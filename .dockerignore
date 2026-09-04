@@ -1,0 +1,17 @@
+.git
+.agents
+.claude
+.scratch
+.vite-cache
+.vscode
+coverage
+dist
+dist-ssr
+node_modules
+**/coverage
+**/dist
+**/node_modules
+.env
+.env.*
+!.env.example
+*.log
