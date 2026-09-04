@@ -17,6 +17,50 @@ npm install
 npm run dev
 ```
 
+## Local PostgreSQL และ API
+
+ติดตั้งและเปิด Docker Desktop ให้สถานะเป็น **Engine running** แล้วปิดและเปิด terminal ใหม่ ตรวจสอบการติดตั้งด้วย:
+
+```sh
+docker version
+docker compose version
+```
+
+เตรียม environment ครั้งแรกบน PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+npm run db:generate
+```
+
+เปิด PostgreSQL container และตรวจสถานะ:
+
+```sh
+npm run db:up
+docker compose ps
+```
+
+จากนั้นเปิดสอง terminal จาก repository root:
+
+```sh
+# terminal 1
+npm run dev:api
+
+# terminal 2
+npm run dev:web
+```
+
+API liveness อยู่ที่ `http://localhost:3000/api/health` และ database readiness อยู่ที่ `http://localhost:3000/api/readiness` เมื่อ PostgreSQL พร้อม ทั้งสอง endpoint จะตอบสถานะสำเร็จ
+
+คำสั่งที่ใช้บ่อย:
+
+```sh
+npm run db:logs  # ดู log ของ PostgreSQL
+npm run db:down  # หยุด container โดยเก็บข้อมูลใน volume ไว้
+```
+
+หลีกเลี่ยง `docker compose down -v` หากไม่ได้ตั้งใจลบฐานข้อมูล local ทั้งหมด
+
 ## Quality commands
 
 ```sh

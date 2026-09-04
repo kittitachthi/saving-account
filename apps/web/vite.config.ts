@@ -6,4 +6,9 @@ import { defineConfig } from "vite";
 export default defineConfig({
   cacheDir: ".vite-cache",
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  server: {
+    proxy: {
+      "/api": "http://localhost:3000",
+    },
+  },
 });

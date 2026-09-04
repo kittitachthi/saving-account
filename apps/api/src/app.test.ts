@@ -1,0 +1,51 @@
+import request from "supertest";
+import { describe, expect, it, vi } from "vitest";
+import { createApp } from "./app.js";
+
+describe("API operational endpoints", () => {
+  it("reports liveness without exposing configuration", async () => {
+    const response = await request(createApp({ checkDatabase: vi.fn() })).get(
+      "/api/health",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: "ok" });
+    expect(JSON.stringify(response.body)).not.toContain("DATABASE_URL");
+  });
+
+  it("reports readiness after checking the database", async () => {
+    const checkDatabase = vi.fn().mockResolvedValue(undefined);
+    const response = await request(createApp({ checkDatabase })).get(
+      "/api/readiness",
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ status: "ready" });
+    expect(checkDatabase).toHaveBeenCalledOnce();
+  });
+
+  it("returns a safe unavailable response when the database is down", async () => {
+    const response = await request(
+      createApp({
+        checkDatabase: vi.fn().mockRejectedValue(new Error("secret database")),
+      }),
+    ).get("/api/readiness");
+
+    expect(response.status).toBe(503);
+    expect(response.body).toEqual({
+      error: { code: "SERVICE_UNAVAILABLE", message: "Service is not ready" },
+    });
+    expect(JSON.stringify(response.body)).not.toContain("secret database");
+  });
+
+  it("uses the standard error shape for unknown routes", async () => {
+    const response = await request(createApp({ checkDatabase: vi.fn() })).get(
+      "/api/missing",
+    );
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: { code: "NOT_FOUND", message: "Route not found" },
+    });
+  });
+});

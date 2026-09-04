@@ -4,11 +4,14 @@
     "tsBuildInfoFile": "../../node_modules/.tmp/api-tsconfig.tsbuildinfo",
     "target": "ES2023",
     "lib": ["ES2023"],
+    "types": ["node"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
   "include": ["src"]
 }
