@@ -12,13 +12,6 @@ export type OAuthAttempt = {
   returnTo: string;
 };
 
-export type AuthenticatedUser = {
-  id: string;
-  email: string;
-  displayName: string;
-  personalWalletId: string;
-};
-
 export interface GoogleIdentityProvider {
   createAuthorizationRequest(): Promise<{
     authorizationUrl: string;
@@ -46,3 +39,6 @@ export interface AuthRepository {
   ): Promise<AuthenticatedUser | null>;
   revokeSession(tokenHash: string): Promise<void>;
 }
+import type { AuthenticatedUser } from "@saving-account/contracts";
+
+export type { AuthenticatedUser } from "@saving-account/contracts";

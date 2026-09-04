@@ -9,16 +9,18 @@ import { PrismaAuthRepository } from "./prisma-auth.repository.js";
 
 loadEnvironment({ path: new URL("../../../../../.env", import.meta.url) });
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl =
+  process.env.TEST_DATABASE_URL ??
+  "postgresql://saving_account:saving_account_local@localhost:5432/saving_account?schema=public";
 
-describe.runIf(databaseUrl)("Prisma authentication persistence", () => {
+describe("Prisma authentication persistence", () => {
   let database: Database;
   const suffix = randomUUID();
   const allowedEmail = `allowed-${suffix}@example.com`;
   const rejectedEmail = `rejected-${suffix}@example.com`;
 
   beforeAll(async () => {
-    database = createDatabase(databaseUrl!);
+    database = createDatabase(databaseUrl);
     await database.client.betaAllowlist.create({
       data: { email: allowedEmail, addedBy: "integration-test" },
     });

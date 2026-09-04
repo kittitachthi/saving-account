@@ -48,8 +48,10 @@ export function Application() {
     return (
       <main className={styles.centered}>
         <section className={styles.signIn} aria-labelledby="sign-in-title">
-          <h1 id="sign-in-title">Saving Account</h1>
-          <p>เข้าสู่ระบบเพื่อเปิดข้อมูลการเงินของคุณ</p>
+          <h1 className={styles.title} id="sign-in-title">
+            Saving Account
+          </h1>
+          <p className={styles.copy}>เข้าสู่ระบบเพื่อเปิดข้อมูลการเงินของคุณ</p>
           <a
             className={styles.googleButton}
             href={`/api/auth/google/start?returnTo=${encodeURIComponent(returnTo)}`}

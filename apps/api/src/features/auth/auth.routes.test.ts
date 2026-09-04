@@ -16,7 +16,11 @@ const user = {
   personalWalletId: "wallet-1",
 };
 
-function createAuthApp({ allowed = true, verified = true } = {}) {
+function createAuthApp({
+  allowed = true,
+  verified = true,
+  secureCookies = false,
+} = {}) {
   let attempt: OAuthAttempt | null = null;
   let activeSession = false;
   const repository: AuthRepository = {
@@ -57,7 +61,7 @@ function createAuthApp({ allowed = true, verified = true } = {}) {
   return {
     app: createApp({
       checkDatabase: vi.fn(),
-      registerRoutes: (app) => registerAuthRoutes(app, auth, false),
+      registerRoutes: (app) => registerAuthRoutes(app, auth, secureCookies),
     }),
     repository,
     google,
@@ -146,5 +150,15 @@ describe("Google authentication", () => {
 
     expect((await browser.post("/api/auth/logout")).status).toBe(204);
     expect((await browser.get("/api/auth/session")).status).toBe(401);
+  });
+
+  it("marks the Session cookie Secure in beta/production topology", async () => {
+    const { app } = createAuthApp({ secureCookies: true });
+    await request(app).get("/api/auth/google/start");
+    const response = await request(app).get(
+      "/api/auth/google/callback?state=state-1&code=code-1",
+    );
+
+    expect(response.headers["set-cookie"]?.[0]).toContain("Secure");
   });
 });

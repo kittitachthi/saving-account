@@ -17,11 +17,11 @@
   text-align: center;
 }
 
-.signIn h1 {
+.title {
   margin-top: 0;
 }
 
-.signIn p {
+.copy {
   margin-bottom: 24px;
   color: var(--color-text-muted);
 }
@@ -34,11 +34,16 @@
   padding: 0 18px;
   border-radius: var(--radius-control);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
   text-decoration: none;
 }
 
 .googleButton:hover {
   background: var(--color-accent-hover);
+}
+
+.googleButton:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
 }
