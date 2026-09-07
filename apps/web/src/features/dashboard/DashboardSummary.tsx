@@ -1,49 +1,52 @@
-import type { TransactionTotals } from "../transactions/domain";
+import type { TransactionTotals, Transaction } from "../transactions";
 import styles from "./Dashboard.module.css";
-import type { Transaction } from "../transactions/domain";
+import { calculateMonthlyCashflow } from "./domain";
+import { DashboardMascot } from "./DashboardMascot";
+import type { MascotState } from "./useDashboardMascot";
 import { DailyCashflowCard } from "./DailyCashflowCard";
 const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
 export function DashboardSummary({
   totals,
   transactions,
   now,
+  mascotState,
 }: {
   totals: TransactionTotals;
   transactions: Transaction[];
   now: Date;
+  mascotState: MascotState;
 }) {
+  const monthly = calculateMonthlyCashflow(transactions, now);
   return (
     <>
       <section className={styles.hero}>
-        <p>ยอดเงินพร้อมใช้　◉</p>
-        <h2>
-          ฿{money(totals.balance)}
-          <small>.00</small>
-        </h2>
-        <label>↗ 8.4%</label>
-        <span> จากเดือนที่แล้ว</span>
-        <div className={styles.rings}>
+        <div className={styles.rings} aria-hidden="true">
           <i />
           <i />
           <i />
-          <b>฿</b>
         </div>
+        <div className={styles.balance}>
+          <p>ยอดเงินพร้อมใช้　◉</p>
+          <h2>
+            ฿{money(totals.balance)}
+            <small>.00</small>
+          </h2>
+        </div>
+        <DashboardMascot state={mascotState} />
       </section>
       <section className={styles.stats}>
         <article>
           <i className={`${styles.stat} ${styles.incomeStat}`}>↙</i>
           <div>
             <p>รายรับเดือนนี้</p>
-            <h3>฿{money(totals.income)}</h3>
-            <small className={styles.incomeText}>↗ 12.5%</small>
+            <h3>฿{money(monthly.income)}</h3>
           </div>
         </article>
         <article>
           <i className={`${styles.stat} ${styles.expenseStat}`}>↗</i>
           <div>
             <p>รายจ่ายเดือนนี้</p>
-            <h3>฿{money(totals.expense)}</h3>
-            <small className={styles.expenseText}>↘ 3.2%</small>
+            <h3>฿{money(monthly.expense)}</h3>
           </div>
         </article>
         <DailyCashflowCard transactions={transactions} now={now} />

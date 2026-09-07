@@ -62,7 +62,7 @@
 }
 @media (max-width: 600px) {
   .main {
-    padding: 20px 14px 84px;
+    padding: 20px 14px 100px;
   }
   .header {
     align-items: start;

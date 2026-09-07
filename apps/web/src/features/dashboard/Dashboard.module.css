@@ -1,7 +1,11 @@
 .hero {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(120px, 24vw, 220px);
+  gap: 16px;
+  align-items: center;
+  overflow: visible;
   min-height: 170px;
   padding: 28px 33px;
   border-radius: var(--radius-dialog);
@@ -9,58 +13,48 @@
   box-shadow: 0 12px 30px #087f5b1f;
   color: #fff;
 }
-.hero p {
-  margin: 0 0 6px;
-  color: #d5ece3;
-}
-.hero h2 {
-  margin: 0 0 10px;
-  font-size: 35px;
-}
-.hero h2 small {
-  font-size: 21px;
-}
-.hero label {
-  padding: 4px 8px;
-  border-radius: 20px;
-  background: #ffffff25;
-  font-size: 11px;
-}
-.hero > span {
-  color: #cfe7de;
-  font-size: 11px;
+.balance {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .rings {
   position: absolute;
-  top: 0;
-  right: 65px;
-  width: 220px;
-  height: 100%;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
 }
 .rings i {
   position: absolute;
-  inset: 50% auto auto 50%;
+  top: 50%;
+  right: 28px;
+  width: 220px;
+  height: 220px;
   border: 1px solid #ffffff2d;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
-}
-.rings i:nth-child(1) {
-  width: 215px;
-  height: 215px;
+  transform: translateY(-50%);
 }
 .rings i:nth-child(2) {
-  width: 155px;
-  height: 155px;
+  width: 160px;
+  height: 160px;
+  right: 58px;
 }
 .rings i:nth-child(3) {
-  width: 95px;
-  height: 95px;
+  width: 100px;
+  height: 100px;
+  right: 88px;
 }
-.rings b {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  font-size: 38px;
+.balance p {
+  margin: 0 0 6px;
+  color: #d5ece3;
+}
+.balance h2 {
+  margin: 0 0 10px;
+  font-size: 35px;
+}
+.balance h2 small {
+  font-size: 21px;
 }
 .stats {
   display: grid;
@@ -246,13 +240,12 @@
 @media (max-width: 600px) {
   .hero {
     min-height: 150px;
-    padding: 24px;
+    padding: 20px 16px;
+    grid-template-columns: minmax(0, 1fr) clamp(100px, 30vw, 160px);
+    gap: 8px;
   }
-  .hero h2 {
+  .balance h2 {
     font-size: 29px;
-  }
-  .rings {
-    right: -90px;
   }
   .stats {
     grid-template-columns: 1fr;

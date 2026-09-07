@@ -1,6 +1,38 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../transactions/domain";
-import { calculateDailyCashflow } from "./domain";
+import { calculateDailyCashflow, calculateMonthlyCashflow } from "./domain";
+
+describe("monthly cashflow domain", () => {
+  it("uses the local year and month, excludes savings, and preserves fractional amounts", () => {
+    const items = [
+      transaction(1, "income", 10.25, new Date(2026, 0, 1, 0).toISOString()),
+      transaction(
+        2,
+        "expense",
+        1.5,
+        new Date(2026, 0, 31, 23, 59).toISOString(),
+      ),
+      transaction(3, "income", 999, new Date(2025, 0, 1).toISOString()),
+      transaction(
+        4,
+        "income",
+        999,
+        new Date(2025, 11, 31, 23, 59).toISOString(),
+      ),
+      transaction(5, "expense", 999, new Date(2026, 1, 1, 0).toISOString()),
+      transaction(6, "saving", 100, new Date(2026, 0, 1).toISOString()),
+      transaction(7, "income", 999, "invalid"),
+    ];
+    expect(calculateMonthlyCashflow(items, new Date(2026, 0, 15))).toEqual({
+      income: 10.25,
+      expense: 1.5,
+    });
+    expect(calculateMonthlyCashflow([], new Date(2026, 0, 15))).toEqual({
+      income: 0,
+      expense: 0,
+    });
+  });
+});
 
 const transaction = (
   id: number,

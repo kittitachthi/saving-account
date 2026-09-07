@@ -6,7 +6,7 @@ import styles from "./Transactions.module.css";
 
 type Props = {
   onClose: () => void;
-  onAdd: (item: Transaction) => void;
+  onAdd: (item: Transaction) => boolean;
   availableBalance: number;
 };
 const savingCategories = [
@@ -53,7 +53,7 @@ export function TransactionForm({ onClose, onAdd, availableBalance }: Props) {
       อื่นๆ: "•",
     };
     const createdAt = new Date().toISOString();
-    onAdd({
+    const saved = onAdd({
       id: Date.now(),
       title: title.trim(),
       category:
@@ -68,7 +68,11 @@ export function TransactionForm({ onClose, onAdd, availableBalance }: Props) {
       type,
       icon: type === "income" ? "฿" : type === "saving" ? "◇" : icons[category],
     });
-    onClose();
+    if (saved) onClose();
+    else
+      setError(
+        "บันทึกรายการไม่สำเร็จ กรุณาลองอีกครั้ง หรือตรวจสอบพื้นที่จัดเก็บของเบราว์เซอร์",
+      );
   };
   return (
     <Overlay onDismiss={onClose}>

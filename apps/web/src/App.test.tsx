@@ -215,7 +215,9 @@ describe("แดชบอร์ดการเงินประจำวัน"
     render(<App />);
     await user.click(screen.getByRole("button", { name: "ลบรายการ กาแฟ" }));
     await user.click(screen.getByRole("button", { name: "ลบรายการ" }));
-    expect(screen.getByRole("status")).toHaveTextContent("ลบรายการแล้ว");
+    expect(
+      screen.getByRole("status", { name: "ผลการลบรายการ" }),
+    ).toHaveTextContent("ลบรายการแล้ว");
     await user.click(screen.getByRole("button", { name: "Undo" }));
     expect(screen.getByText("กาแฟ")).toBeInTheDocument();
     expect(screen.getByText("฿30,990", { exact: false })).toBeInTheDocument();

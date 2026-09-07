@@ -167,17 +167,24 @@ describe("Protected financial application", () => {
         }),
       ),
     );
-    const { container } = render(<Application />);
+    render(<Application />);
 
     await screen.findByText("สวัสดี, Friend 👋");
-    const images = [...container.querySelectorAll("img")];
+    const triggers = screen.getAllByRole("button", {
+      name: "เปิดเมนูบัญชีของ Friend",
+    });
+    const images = triggers.flatMap((trigger) => [
+      ...trigger.querySelectorAll("img"),
+    ]);
     expect(images).toHaveLength(2);
     expect(images[0]).toHaveAttribute(
       "src",
       "https://lh3.googleusercontent.com/friend",
     );
     images.forEach((image) => fireEvent.error(image));
-    expect(container.querySelector("img")).not.toBeInTheDocument();
+    triggers.forEach((trigger) =>
+      expect(trigger.querySelector("img")).not.toBeInTheDocument(),
+    );
     expect(screen.getAllByText("F")).toHaveLength(2);
   });
 
@@ -218,7 +225,7 @@ describe("Protected financial application", () => {
     expect(screen.queryByRole("region", { name: "เมนูบัญชี" })).toBeNull();
   });
 
-  it("confirms Current-Session Logout and reports success on Login", async () => {
+  it("confirms Current-Session Logout and returns to Marketing without a logout notice", async () => {
     const user = userEvent.setup();
     const fetchMock = vi
       .fn()
@@ -262,12 +269,10 @@ describe("Protected financial application", () => {
       within(dialog).getByRole("button", { name: "ออกจากระบบ" }),
     );
 
-    expect(await screen.findByRole("status")).toHaveTextContent(
-      "ออกจากระบบแล้ว",
-    );
     expect(
-      screen.getByRole("button", { name: "เข้าสู่ระบบ" }),
+      await screen.findByRole("button", { name: "เข้าสู่ระบบ" }),
     ).toBeInTheDocument();
+    expect(screen.queryByText("ออกจากระบบแล้ว")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/logout", {
       method: "POST",
       credentials: "same-origin",
@@ -323,7 +328,10 @@ describe("Protected financial application", () => {
     expect(screen.getByText("สวัสดี, Friend 👋")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "ออกจากระบบ" }));
-    expect(await screen.findByText("ออกจากระบบแล้ว")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "เข้าสู่ระบบ" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("ออกจากระบบแล้ว")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });

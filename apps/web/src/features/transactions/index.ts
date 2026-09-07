@@ -4,4 +4,4 @@ export { TransactionForm } from "./TransactionForm";
 export { TransactionPanel } from "./TransactionPanel";
 export { UndoToast } from "./UndoToast";
 export { useTransactions } from "./useTransactions";
-export type { Transaction, TransactionTotals } from "./domain";
+export type { Transaction, TransactionTotals, TransactionType } from "./domain";

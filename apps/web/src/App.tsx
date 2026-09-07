@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { AuthenticatedUser } from "@saving-account/contracts";
 import styles from "./App.module.css";
 import { AppShell } from "./app/AppShell";
-import { DashboardSummary } from "./features/dashboard";
+import { DashboardSummary, useDashboardMascot } from "./features/dashboard";
 import { CategoryChart } from "./features/category-chart";
 import { LogoutConfirmation } from "./features/account";
 import { SettingsSurface } from "./features/settings";
@@ -47,6 +47,7 @@ export default function App({
   const restoreLogoutFocus = useRef<() => void>(() => undefined);
   const { theme, toggleTheme } = useTheme();
   const transactions = useTransactions(seedTransactions);
+  const mascot = useDashboardMascot();
   const savings = useSavingsGoal();
   return (
     <AppShell
@@ -85,6 +86,7 @@ export default function App({
           totals={transactions.totals}
           transactions={transactions.transactions}
           now={transactions.now}
+          mascotState={mascot.state}
         />
         <section className={styles.content}>
           <TransactionPanel
@@ -112,7 +114,11 @@ export default function App({
       {entryOpen && (
         <TransactionForm
           onClose={() => setEntryOpen(false)}
-          onAdd={transactions.addTransaction}
+          onAdd={(item) => {
+            const saved = transactions.addTransaction(item);
+            mascot.reactToResult(saved ? item.type : "error");
+            return saved;
+          }}
           availableBalance={transactions.totals.balance}
         />
       )}

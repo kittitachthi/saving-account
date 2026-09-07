@@ -12,7 +12,6 @@ type SessionState =
 
 export function Application() {
   const [state, setState] = useState<SessionState>({ status: "loading" });
-  const [notice, setNotice] = useState<string | null>(null);
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -51,7 +50,7 @@ export function Application() {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     return (
       <MarketingPage
-        notice={notice}
+        notice={null}
         returnTo={returnTo}
         theme={theme}
         onToggleTheme={toggleTheme}

@@ -67,14 +67,32 @@ export function AppShell({
           <button className={`${styles.navButton} ${styles.active}`}>
             ⌂ <span>ภาพรวม</span>
           </button>
-          <button className={styles.navButton}>
+          <button
+            className={styles.navButton}
+            aria-disabled="true"
+            disabled
+            tabIndex={-1}
+          >
             ↕ <span>รายการทั้งหมด</span>
+            <small className={styles.comingSoon}>เร็ว ๆ นี้</small>
           </button>
-          <button className={styles.navButton}>
+          <button
+            className={styles.navButton}
+            aria-disabled="true"
+            disabled
+            tabIndex={-1}
+          >
             ◎ <span>งบประมาณ</span>
+            <small className={styles.comingSoon}>เร็ว ๆ นี้</small>
           </button>
-          <button className={styles.navButton}>
+          <button
+            className={styles.navButton}
+            aria-disabled="true"
+            disabled
+            tabIndex={-1}
+          >
             ▥ <span>รายงาน</span>
+            <small className={styles.comingSoon}>เร็ว ๆ นี้</small>
           </button>
         </nav>
         <div className={styles.asideBottom}>

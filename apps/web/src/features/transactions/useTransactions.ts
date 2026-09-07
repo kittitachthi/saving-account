@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   calculateTotals,
   canRemoveTransaction,
@@ -28,7 +28,17 @@ export const useTransactions = (fallback: Transaction[]) => {
   const [deleteError, setDeleteError] = useState("");
   const [removed, setRemoved] = useState<RemovedTransaction | null>(null);
   const [newItemId, setNewItemId] = useState<number | null>(null);
-  useEffect(() => saveTransactions(transactions), [transactions]);
+  const persistedTransactions = useRef(transactions);
+  const commitTransactions = (next: Transaction[]) => {
+    saveTransactions(next);
+    persistedTransactions.current = next;
+    setTransactions(next);
+  };
+  useEffect(() => {
+    if (newItemId === null) return;
+    const timer = window.setTimeout(() => setNewItemId(null), 500);
+    return () => clearTimeout(timer);
+  }, [newItemId]);
   useEffect(() => {
     if (!removed) return;
     const timer = window.setTimeout(() => setRemoved(null), UNDO_MS);
@@ -44,12 +54,16 @@ export const useTransactions = (fallback: Transaction[]) => {
   }, [now]);
   const totals = calculateTotals(transactions);
   const addTransaction = (item: Transaction) => {
-    setTransactions((current) =>
-      sortTransactionsNewestFirst([item, ...current]),
-    );
+    try {
+      commitTransactions(
+        sortTransactionsNewestFirst([item, ...persistedTransactions.current]),
+      );
+    } catch {
+      return false;
+    }
     setPage(1);
     setNewItemId(item.id);
-    window.setTimeout(() => setNewItemId(null), 500);
+    return true;
   };
   const changeFilter = (next: TransactionFilter) => {
     setFilter(next);
@@ -69,13 +83,24 @@ export const useTransactions = (fallback: Transaction[]) => {
       return;
     }
     const result = removeTransaction(transactions, pendingDelete.id);
-    setTransactions(result.transactions);
+    try {
+      commitTransactions(result.transactions);
+    } catch {
+      setDeleteError("ลบรายการไม่สำเร็จ กรุณาลองอีกครั้ง");
+      return;
+    }
     setRemoved(result.removed);
     setPendingDeleteState(null);
   };
   const undoDelete = () => {
     if (!removed) return;
-    setTransactions((current) => restoreTransaction(current, removed));
+    try {
+      commitTransactions(
+        restoreTransaction(persistedTransactions.current, removed),
+      );
+    } catch {
+      return;
+    }
     setRemoved(null);
   };
   return {

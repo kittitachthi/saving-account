@@ -1,4 +1,21 @@
-import type { Transaction, TransactionType } from "../transactions/domain";
+import type { Transaction, TransactionType } from "../transactions";
+
+export function calculateMonthlyCashflow(items: Transaction[], now: Date) {
+  return items.reduce(
+    (totals, item) => {
+      const date = new Date(item.createdAt ?? "");
+      if (
+        (item.type === "income" || item.type === "expense") &&
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth()
+      ) {
+        totals[item.type] += item.amount;
+      }
+      return totals;
+    },
+    { income: 0, expense: 0 },
+  );
+}
 
 export type CashflowSegment = {
   type: Extract<TransactionType, "income" | "expense">;
