@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** Completed on 2026-09-08 following the user's instruction to continue.
 
-- [ ] ตรวจ Session ก่อนตอบสำเร็จ
-- [ ] Session ปกติถูกเพิกถอนเฉพาะอุปกรณ์ปัจจุบันและล้าง cookie
-- [ ] ทดสอบ HTTP invalid/missing/expired Session และ frontend failure/retry
+- [x] ตรวจ Session ก่อนตอบสำเร็จ
+- [x] Session ปกติถูกเพิกถอนเฉพาะอุปกรณ์ปัจจุบันและล้าง cookie
+- [x] ทดสอบ HTTP invalid/missing/expired Session และ frontend failure/retry

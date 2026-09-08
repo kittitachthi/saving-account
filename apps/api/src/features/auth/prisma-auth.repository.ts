@@ -149,7 +149,7 @@ export class PrismaAuthRepository implements AuthRepository {
     });
   }
 
-  async findUserBySession(tokenHash: string, now: Date) {
+  async findSession(tokenHash: string, now: Date) {
     const session = await this.prisma.session.findUnique({
       where: { tokenHash },
       include: {
@@ -157,10 +157,39 @@ export class PrismaAuthRepository implements AuthRepository {
       },
     });
     if (!session || session.expiresAt <= now) return null;
-    return toAuthenticatedUser(session.user);
+    return {
+      user: toAuthenticatedUser(session.user),
+      expiresAt: session.expiresAt,
+    };
   }
 
-  async revokeSession(tokenHash: string) {
-    await this.prisma.session.deleteMany({ where: { tokenHash } });
+  async renewSession(tokenHash: string, now: Date, expiresAt: Date) {
+    return this.prisma.$transaction(async (transaction) => {
+      // One conditional UPDATE locks the Session row: concurrent renewal cannot
+      // shorten expiry, and DELETE cannot be undone by an upsert/recreate.
+      const sessions = await transaction.$queryRaw<
+        Array<{ userId: string; expiresAt: Date }>
+      >`
+        UPDATE "Session"
+        SET "expiresAt" = GREATEST("expiresAt", ${expiresAt}),
+            "lastSeenAt" = GREATEST("lastSeenAt", ${now})
+        WHERE "tokenHash" = ${tokenHash} AND "expiresAt" > ${now}
+        RETURNING "userId", "expiresAt"
+      `;
+      const session = sessions[0];
+      if (!session) return null;
+      const user = await transaction.user.findUniqueOrThrow({
+        where: { id: session.userId },
+        include: { ownedWallets: { orderBy: { createdAt: "asc" } } },
+      });
+      return { user: toAuthenticatedUser(user), expiresAt: session.expiresAt };
+    });
+  }
+
+  async revokeSession(tokenHash: string, now: Date) {
+    const result = await this.prisma.session.deleteMany({
+      where: { tokenHash, expiresAt: { gt: now } },
+    });
+    return result.count === 1;
   }
 }

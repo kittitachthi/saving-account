@@ -1,4 +1,5 @@
 import request from "supertest";
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import { createApp } from "../../app.js";
 import { registerAuthRoutes } from "./auth.routes.js";
@@ -23,9 +24,10 @@ function createAuthApp({
   secureCookies = false,
   appOrigin = "http://localhost:5173",
   googleRedirectUri = "http://localhost:5173/api/auth/google/callback",
+  now = () => new Date(),
 } = {}) {
   let attempt: OAuthAttempt | null = null;
-  let activeSession = false;
+  const sessions = new Map<string, { user: typeof user; expiresAt: Date }>();
   const repository: AuthRepository = {
     saveOAuthAttempt: vi.fn(async (saved) => {
       attempt = saved;
@@ -36,14 +38,29 @@ function createAuthApp({
       attempt = null;
       return consumed;
     }),
-    createSessionForAllowedIdentity: vi.fn(async () => {
-      if (!allowed) return null;
-      activeSession = true;
-      return user;
+    createSessionForAllowedIdentity: vi.fn(
+      async (_identity, tokenHash, expiresAt) => {
+        if (!allowed) return null;
+        sessions.set(tokenHash, { user, expiresAt });
+        return user;
+      },
+    ),
+    findSession: vi.fn(async (tokenHash, current) => {
+      const session = sessions.get(tokenHash);
+      return session && session.expiresAt > current ? session : null;
     }),
-    findUserBySession: vi.fn(async () => (activeSession ? user : null)),
-    revokeSession: vi.fn(async () => {
-      activeSession = false;
+    renewSession: vi.fn(async (tokenHash, current, expiresAt) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current) return null;
+      session.expiresAt = new Date(
+        Math.max(session.expiresAt.getTime(), expiresAt.getTime()),
+      );
+      return session;
+    }),
+    revokeSession: vi.fn(async (tokenHash, current) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current) return false;
+      return sessions.delete(tokenHash);
     }),
   };
   const google: GoogleIdentityProvider = {
@@ -61,7 +78,7 @@ function createAuthApp({
       avatarUrl: "https://lh3.googleusercontent.com/friend",
     })),
   };
-  const auth = new AuthService(repository, google);
+  const auth = new AuthService(repository, google, now);
   return {
     app: createApp({
       checkDatabase: vi.fn(),
@@ -74,10 +91,149 @@ function createAuthApp({
     }),
     repository,
     google,
+    sessions,
   };
 }
 
 describe("Google authentication", () => {
+  const trusted = { Origin: "http://localhost:5173", "X-Pocka-Request": "1" };
+  async function signIn(app: ReturnType<typeof createAuthApp>["app"]) {
+    const browser = request.agent(app);
+    await browser.get("/api/auth/google/start");
+    await browser.get("/api/auth/google/callback?state=state-1&code=code-1");
+    return browser;
+  }
+
+  it.each([undefined, "unknown", "%E0%A4%A"])(
+    "rejects missing/invalid logout cookie %s without reporting success",
+    async (cookie) => {
+      const { app } = createAuthApp();
+      const call = request(app).post("/api/auth/logout").set(trusted);
+      if (cookie) call.set("Cookie", `saving_account_session=${cookie}`);
+      const response = await call;
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHENTICATED");
+      expect(response.headers["set-cookie"]).toBeUndefined();
+    },
+  );
+
+  it("rejects expired logout and revokes only the current valid device", async () => {
+    let time = new Date("2026-09-07T00:00:00Z");
+    const { app } = createAuthApp({ now: () => time });
+    const expired = await signIn(app);
+    time = new Date("2026-09-14T00:00:00Z");
+    expect((await expired.post("/api/auth/logout").set(trusted)).status).toBe(
+      401,
+    );
+    const first = await signIn(app);
+    const second = await signIn(app);
+    const logout = await first.post("/api/auth/logout").set(trusted);
+    expect(logout.status).toBe(204);
+    expect(logout.headers["set-cookie"][0]).toContain(
+      "Expires=Thu, 01 Jan 1970",
+    );
+    expect((await first.post("/api/auth/logout").set(trusted)).status).toBe(
+      401,
+    );
+    expect((await second.get("/api/auth/session")).status).toBe(200);
+  });
+
+  it.each(["/api/auth/logout", "/api/auth/session/renew"])(
+    "enforces CSRF on %s without mutating the Session",
+    async (path) => {
+      const { app, repository } = createAuthApp();
+      const browser = await signIn(app);
+      for (const headers of [
+        {},
+        { Origin: trusted.Origin },
+        { "X-Pocka-Request": "1" },
+        { ...trusted, Origin: "null" },
+        { ...trusted, Origin: "https://attacker.example" },
+        { ...trusted, Origin: "http://localhost:5173.attacker.example" },
+        { ...trusted, "Sec-Fetch-Site": "cross-site" },
+        { ...trusted, "X-Pocka-Request": "wrong" },
+      ]) {
+        const response = await browser.post(path).set(headers);
+        expect(response.status).toBe(403);
+        expect(response.body.error.code).toBe("CSRF_REJECTED");
+        expect(response.headers["set-cookie"]).toBeUndefined();
+      }
+      expect(repository.revokeSession).not.toHaveBeenCalled();
+      expect(repository.renewSession).not.toHaveBeenCalled();
+      expect((await browser.get("/api/auth/session")).status).toBe(200);
+    },
+  );
+
+  it("renews a valid Session for seven days, preserves cookie flags and never revives an expired or revoked Session", async () => {
+    let time = new Date("2026-09-07T00:00:00Z");
+    const { app, sessions } = createAuthApp({ now: () => time });
+    const browser = await signIn(app);
+    const read = await browser.get("/api/auth/session");
+    expect(read.headers["set-cookie"]).toBeUndefined();
+    expect(read.headers["cache-control"]).toContain("no-store");
+    expect(read.body.expiresAt).toBe("2026-09-14T00:00:00.000Z");
+    time = new Date("2026-09-13T00:00:00Z");
+    const renewed = await browser.post("/api/auth/session/renew").set(trusted);
+    expect(renewed.status).toBe(200);
+    expect(renewed.body.expiresAt).toBe("2026-09-20T00:00:00.000Z");
+    expect(renewed.headers["cache-control"]).toContain("no-store");
+    const cookie = renewed.headers["set-cookie"][0];
+    expect(cookie).toContain(
+      `Expires=${new Date(renewed.body.expiresAt).toUTCString()}`,
+    );
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).toContain("Path=/");
+    const token = decodeURIComponent(cookie.split(";")[0].split("=")[1]);
+    expect(
+      sessions
+        .get(createHash("sha256").update(token).digest("hex"))
+        ?.expiresAt.toISOString(),
+    ).toBe(renewed.body.expiresAt);
+    time = new Date("2026-09-20T00:00:00Z");
+    expect(
+      (await browser.post("/api/auth/session/renew").set(trusted)).status,
+    ).toBe(401);
+    const next = await signIn(app);
+    const nextCookie = (
+      await next.post("/api/auth/session/renew").set(trusted)
+    ).headers["set-cookie"][0].split(";")[0];
+    await next.post("/api/auth/logout").set(trusted);
+    const denied = await request(app)
+      .post("/api/auth/session/renew")
+      .set(trusted)
+      .set("Cookie", nextCookie);
+    expect(denied.status).toBe(401);
+    expect(denied.headers["set-cookie"]).toBeUndefined();
+  });
+
+  it("preserves Secure on renewal and does not trust Host for CSRF", async () => {
+    const { app } = createAuthApp({
+      secureCookies: true,
+      appOrigin: "https://pocka.example",
+    });
+    await request(app).get("/api/auth/google/start");
+    const callback = await request(app).get(
+      "/api/auth/google/callback?state=state-1&code=code-1",
+    );
+    const cookie = callback.headers["set-cookie"][0].split(";")[0];
+    const response = await request(app)
+      .post("/api/auth/session/renew")
+      .set("Cookie", cookie)
+      .set({ ...trusted, Origin: "https://pocka.example" });
+    expect(response.status).toBe(200);
+    expect(response.headers["set-cookie"][0]).toContain("Secure");
+    const forged = await request(app)
+      .post("/api/auth/logout")
+      .set("Cookie", cookie)
+      .set({
+        ...trusted,
+        Origin: "https://attacker.example",
+        Host: "attacker.example",
+        "X-Forwarded-Host": "attacker.example",
+      });
+    expect(forged.status).toBe(403);
+  });
   it("starts Google OIDC and only preserves an internal return path", async () => {
     const { app, repository } = createAuthApp();
     const response = await request(app).get(
@@ -117,7 +273,7 @@ describe("Google authentication", () => {
     expect(callback.headers.location).toBe("http://localhost:5173/wallet");
     const sessionCookie = callback.headers["set-cookie"]?.[0];
     expect(sessionCookie).toContain("saving_account_session=");
-    expect(sessionCookie).toContain("Max-Age=604800");
+    expect(sessionCookie).toContain("Expires=");
     expect(sessionCookie).toContain("Path=/");
     expect(sessionCookie).toContain("HttpOnly");
     expect(sessionCookie).toContain("SameSite=Lax");
@@ -134,7 +290,7 @@ describe("Google authentication", () => {
     );
     const session = await browser.get("/api/auth/session");
     expect(session.status).toBe(200);
-    expect(session.body).toEqual({ user });
+    expect(session.body).toEqual({ user, expiresAt: expect.any(String) });
   });
 
   it("ignores request host headers when creating callback and return URLs", async () => {
@@ -186,7 +342,14 @@ describe("Google authentication", () => {
     await browser.get("/api/auth/google/start");
     await browser.get("/api/auth/google/callback?state=state-1&code=code-1");
 
-    expect((await browser.post("/api/auth/logout")).status).toBe(204);
+    expect(
+      (
+        await browser
+          .post("/api/auth/logout")
+          .set("Origin", "http://localhost:5173")
+          .set("X-Pocka-Request", "1")
+      ).status,
+    ).toBe(204);
     expect((await browser.get("/api/auth/session")).status).toBe(401);
   });
 

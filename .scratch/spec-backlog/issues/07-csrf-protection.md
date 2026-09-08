@@ -4,10 +4,10 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** Completed on 2026-09-08 following the user's instruction to continue.
 
-- [ ] ใช้ Logout เป็น vertical slice แรกและเปิด contract ให้ mutations ถัดไปใช้
-- [ ] ปฏิเสธคำขอข้าม origin/ไม่มีหลักฐานที่กำหนด โดยคง OAuth flow
-- [ ] ทดสอบทั้ง frontend request และ assembled HTTP application
+- [x] ใช้ Logout เป็น vertical slice แรกและเปิด contract ให้ mutations ถัดไปใช้
+- [x] ปฏิเสธคำขอข้าม origin/ไม่มีหลักฐานที่กำหนด โดยคง OAuth flow
+- [x] ทดสอบทั้ง frontend request และ assembled HTTP application

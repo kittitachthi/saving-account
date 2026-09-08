@@ -131,6 +131,7 @@ describe("Protected financial application", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
+          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
           user: {
             id: "user-1",
             displayName: "Friend",
@@ -157,6 +158,7 @@ describe("Protected financial application", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
+          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
           user: {
             id: "user-1",
             displayName: "Friend",
@@ -194,6 +196,7 @@ describe("Protected financial application", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
+          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
           user: {
             id: "user-1",
             displayName: "Friend",
@@ -231,6 +234,7 @@ describe("Protected financial application", () => {
       .fn()
       .mockResolvedValueOnce(
         Response.json({
+          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
           user: {
             id: "user-1",
             displayName: "Friend",
@@ -273,10 +277,14 @@ describe("Protected financial application", () => {
       await screen.findByRole("button", { name: "เข้าสู่ระบบ" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("ออกจากระบบแล้ว")).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenLastCalledWith("/api/auth/logout", {
-      method: "POST",
-      credentials: "same-origin",
-    });
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/auth/logout",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "X-Pocka-Request": "1" },
+      }),
+    );
   });
 
   it("keeps the Session and allows retry when logout fails", async () => {
@@ -289,6 +297,7 @@ describe("Protected financial application", () => {
       .fn()
       .mockResolvedValueOnce(
         Response.json({
+          expiresAt: new Date(Date.now() + 7 * 86400000).toISOString(),
           user: {
             id: "user-1",
             displayName: "Friend",

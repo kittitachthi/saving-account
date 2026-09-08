@@ -34,12 +34,18 @@ export interface AuthRepository {
     tokenHash: string,
     expiresAt: Date,
   ): Promise<AuthenticatedUser | null>;
-  findUserBySession(
+  findSession(
     tokenHash: string,
     now: Date,
-  ): Promise<AuthenticatedUser | null>;
-  revokeSession(tokenHash: string): Promise<void>;
+  ): Promise<AuthenticatedSession | null>;
+  renewSession(
+    tokenHash: string,
+    now: Date,
+    expiresAt: Date,
+  ): Promise<AuthenticatedSession | null>;
+  revokeSession(tokenHash: string, now: Date): Promise<boolean>;
 }
+export type AuthenticatedSession = { user: AuthenticatedUser; expiresAt: Date };
 import type { AuthenticatedUser } from "@saving-account/contracts";
 
 export type { AuthenticatedUser } from "@saving-account/contracts";

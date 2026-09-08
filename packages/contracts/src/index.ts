@@ -8,6 +8,7 @@ export type AuthenticatedUser = {
 
 export type AuthSessionResponse = {
   user: AuthenticatedUser;
+  expiresAt: string;
 };
 
 export type BetaWaitlistRequest = {

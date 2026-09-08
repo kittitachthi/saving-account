@@ -1,11 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
-import type {
-  AuthRepository,
-  AuthenticatedUser,
-  GoogleIdentityProvider,
-} from "./auth.types.js";
+import type { AuthRepository, GoogleIdentityProvider } from "./auth.types.js";
 
-const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+export const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 
 function hashSecret(secret: string) {
   return createHash("sha256").update(secret).digest("hex");
@@ -61,24 +57,31 @@ export class AuthService {
     if (!identity.emailVerified) throw new AuthenticationRejectedError();
 
     const sessionToken = randomBytes(32).toString("base64url");
+    const expiresAt = new Date(this.now().getTime() + SESSION_DURATION_MS);
     const user = await this.repository.createSessionForAllowedIdentity(
       { ...identity, email: identity.email.trim().toLowerCase() },
       hashSecret(sessionToken),
-      new Date(this.now().getTime() + SESSION_DURATION_MS),
+      expiresAt,
     );
     if (!user) throw new AuthenticationRejectedError();
 
-    return { sessionToken, user, returnTo: attempt.returnTo };
+    return { sessionToken, user, expiresAt, returnTo: attempt.returnTo };
   }
 
-  async authenticate(sessionToken: string): Promise<AuthenticatedUser | null> {
-    return this.repository.findUserBySession(
-      hashSecret(sessionToken),
-      this.now(),
-    );
+  async authenticate(sessionToken: string) {
+    return this.repository.findSession(hashSecret(sessionToken), this.now());
   }
 
   async logout(sessionToken: string) {
-    await this.repository.revokeSession(hashSecret(sessionToken));
+    return this.repository.revokeSession(hashSecret(sessionToken), this.now());
+  }
+
+  async renew(sessionToken: string) {
+    const now = this.now();
+    return this.repository.renewSession(
+      hashSecret(sessionToken),
+      now,
+      new Date(now.getTime() + SESSION_DURATION_MS),
+    );
   }
 }
