@@ -4,10 +4,10 @@
 
 **Blocked by:** 11: บันทึกและอ่านรายรับ/รายจ่ายจาก Personal Wallet ออนไลน์.
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** User selected tickets 10–12; completed on 2026-09-08.
 
-- [ ] Saving Transaction ลดยอดพร้อมใช้และเพิ่มยอดเงินเก็บด้วย integer satang
-- [ ] สร้าง/แก้ Savings Goal ผ่าน Owner-authorized API
-- [ ] กราฟและ tooltip ใช้ข้อมูล server; เคารพยอดพร้อมใช้และ concurrency
+- [x] Saving Transaction ลดยอดพร้อมใช้และเพิ่มยอดเงินเก็บด้วย integer satang
+- [x] สร้าง/แก้ Savings Goal ผ่าน Owner-authorized API
+- [x] กราฟและ tooltip ใช้ข้อมูล server; เคารพยอดพร้อมใช้และ concurrency

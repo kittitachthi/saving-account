@@ -27,7 +27,7 @@ export const useTransactions = (fallback: Transaction[]) => {
   );
   const [deleteError, setDeleteError] = useState("");
   const [removed, setRemoved] = useState<RemovedTransaction | null>(null);
-  const [newItemId, setNewItemId] = useState<number | null>(null);
+  const [newItemId, setNewItemId] = useState<Transaction["id"] | null>(null);
   const persistedTransactions = useRef(transactions);
   const commitTransactions = (next: Transaction[]) => {
     saveTransactions(next);

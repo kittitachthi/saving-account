@@ -63,7 +63,9 @@ export const calculateDailyCashflow = (
         .sort(
           (a, b) =>
             Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? "") ||
-            b.id - a.id,
+            String(b.id).localeCompare(String(a.id), undefined, {
+              numeric: true,
+            }),
         ),
     };
   });

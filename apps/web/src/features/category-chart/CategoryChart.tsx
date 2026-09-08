@@ -4,6 +4,7 @@ import { InteractiveDonut } from "../../shared/ui/InteractiveDonut";
 import { calculateCategorySummaries } from "./domain";
 import type { CategorySummary } from "./domain";
 import styles from "./CategoryChart.module.css";
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 
 const colors = [
   "var(--color-expense-chart-1)",
@@ -11,23 +12,27 @@ const colors = [
   "var(--color-expense-chart-3)",
   "var(--color-expense-chart-4)",
 ];
-const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
 
 export function CategoryChart({
   transactions,
   expenseTotal,
+  serverSummaries,
+  moneyUnit = "baht",
 }: {
   transactions: Transaction[];
   expenseTotal: number;
+  serverSummaries?: CategorySummary[];
+  moneyUnit?: MoneyUnit;
 }) {
+  const money = (value: number) => formatMoney(value, moneyUnit);
   const summaries = useMemo(
-    () => calculateCategorySummaries(transactions),
-    [transactions],
+    () => serverSummaries ?? calculateCategorySummaries(transactions),
+    [transactions, serverSummaries],
   );
   const segments = summaries.map((item, index) => ({
     id: item.name,
     item,
-    color: colors[index],
+    color: colors[index % colors.length],
     percentage: item.percentage,
     offset: item.offset,
     ariaLabel: `${item.name} ${item.percentage}%`,
@@ -38,7 +43,10 @@ export function CategoryChart({
       <span>ยอดรวม ฿{money(item.total)}</span>
       <span>{item.percentage}% ของรายจ่าย</span>
       <span>{item.count} รายการ</span>
-      <span>เฉลี่ย ฿{money(Math.round(item.average))}</span>
+      <span>
+        เฉลี่ย ฿
+        {money(serverSummaries ? item.average : Math.round(item.average))}
+      </span>
     </>
   );
   return (

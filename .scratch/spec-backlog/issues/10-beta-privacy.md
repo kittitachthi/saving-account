@@ -4,10 +4,10 @@
 
 **Blocked by:** 07: ป้องกัน CSRF สำหรับ authenticated mutations.
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** User selected tickets 10–12; completed on 2026-09-08.
 
-- [ ] บันทึก user/version/time ที่ backend และป้องกันการข้าม gate
-- [ ] สาระสำคัญเปลี่ยนต้องยอมรับใหม่
-- [ ] ปฏิเสธแล้วยังเข้าคำอธิบาย/Logout ได้; เชื่อม Account Deletion เมื่อ ticket 23 พร้อม
+- [x] บันทึก user/version/time ที่ backend และป้องกันการข้าม gate
+- [x] สาระสำคัญเปลี่ยนต้องยอมรับใหม่
+- [x] ปฏิเสธแล้วยังเข้าคำอธิบาย/Logout ได้; เชื่อม Account Deletion เมื่อ ticket 23 พร้อม

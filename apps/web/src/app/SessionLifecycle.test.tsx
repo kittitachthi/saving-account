@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Application } from "./Application";
+import { stubApplicationFetch } from "../test/online-fixtures";
 
 const DURATION = 7 * 86400000;
 const INTERVAL = 5 * 60000;
@@ -23,13 +24,16 @@ const session = (
   },
   expiresAt,
 });
-const renewCalls = (mock: ReturnType<typeof vi.fn>) =>
+type FetchMock = ReturnType<
+  typeof vi.fn<(path: string, options?: RequestInit) => Promise<Response>>
+>;
+const renewCalls = (mock: FetchMock) =>
   mock.mock.calls.filter(([path]) => path === "/api/auth/session/renew");
 const advance = async (ms: number) => {
   await act(async () => vi.advanceTimersByTimeAsync(ms));
 };
-async function mount(fetchMock: ReturnType<typeof vi.fn>) {
-  vi.stubGlobal("fetch", fetchMock);
+async function mount(fetchMock: FetchMock) {
+  stubApplicationFetch("fetch", fetchMock);
   let rendered: ReturnType<typeof render>;
   await act(async () => {
     rendered = render(<Application />);
@@ -73,6 +77,7 @@ describe("Session lifecycle through Application", () => {
       .mockResolvedValueOnce(Response.json(original))
       .mockResolvedValue(new Response(null, { status: 401 }));
     await mount(fetchMock);
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     await advance(DURATION - 1);
     expect(renewCalls(fetchMock)).toHaveLength(0);
     expect(screen.getByText("สวัสดี, Session Tester 👋")).toBeInTheDocument();
@@ -243,6 +248,7 @@ describe("Session lifecycle through Application", () => {
   it("rechecks the server at local expiry when another tab renewed the session", async () => {
     const fetchMock = vi.fn(async () => Response.json(session()));
     await mount(fetchMock);
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
     await advance(DURATION);
     expect(fetchMock.mock.calls).toHaveLength(2);
     expect(renewCalls(fetchMock)).toHaveLength(0);

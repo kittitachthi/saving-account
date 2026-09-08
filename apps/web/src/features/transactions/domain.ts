@@ -1,6 +1,6 @@
 export type TransactionType = "income" | "expense" | "saving";
 export type Transaction = {
-  id: number;
+  id: number | string;
   title: string;
   category: string;
   date: string;
@@ -8,6 +8,9 @@ export type Transaction = {
   amount: number;
   type: TransactionType;
   icon: string;
+  occurredOn?: string;
+  occurredTime?: string | null;
+  amountSatang?: number;
 };
 export type TransactionTotals = {
   income: number;
@@ -42,7 +45,10 @@ export const calculateTotals = (items: Transaction[]): TransactionTotals => {
 };
 export const amountOverBalance = (amount: number, balance: number) =>
   Math.max(0, amount - balance);
-export const canRemoveTransaction = (items: Transaction[], id: number) => {
+export const canRemoveTransaction = (
+  items: Transaction[],
+  id: Transaction["id"],
+) => {
   const item = items.find((candidate) => candidate.id === id);
   if (!item || item.type !== "income") return true;
   return calculateTotals(items).balance - item.amount >= 0;
@@ -56,7 +62,7 @@ export const sortTransactionsNewestFirst = (items: Transaction[]) =>
   [...items].sort(
     (a, b) =>
       Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? "") ||
-      b.id - a.id,
+      String(b.id).localeCompare(String(a.id), undefined, { numeric: true }),
   );
 
 export const formatTransactionDate = (createdAt: string, now = new Date()) => {
@@ -88,7 +94,7 @@ export const paginateTransactions = (
 };
 export const removeTransaction = (
   items: Transaction[],
-  id: number,
+  id: Transaction["id"],
 ): { transactions: Transaction[]; removed: RemovedTransaction | null } => {
   const index = items.findIndex((item) => item.id === id);
   return index < 0

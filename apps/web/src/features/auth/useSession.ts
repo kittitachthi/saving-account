@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { AuthSessionResponse } from "@saving-account/contracts";
 
 type SessionState =
@@ -21,7 +21,7 @@ export function useSession() {
   const lifecycle = useRef<{
     pause: () => void;
     resume: () => void;
-    clear: () => void;
+    clear: (notice?: string | null) => void;
   } | null>(null);
   const logoutPending = useRef(false);
 
@@ -37,6 +37,9 @@ export function useSession() {
     let lastAttemptAt = 0;
 
     const clear = (notice: string | null = null) => {
+      requestVersion++;
+      controller?.abort();
+      controller = null;
       current = null;
       clearTimeout(expiryTimer);
       setState({ status: "anonymous", notice });
@@ -203,5 +206,10 @@ export function useSession() {
       logoutPending.current = false;
     }
   };
-  return { state, logout };
+  const endSession = useCallback(
+    () =>
+      lifecycle.current?.clear("เซสชันสิ้นสุดแล้ว กรุณาเข้าสู่ระบบอีกครั้ง"),
+    [],
+  );
+  return { state, logout, endSession };
 }

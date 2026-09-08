@@ -4,6 +4,7 @@ import { InteractiveDonut } from "../../shared/ui/InteractiveDonut";
 import { calculateSavingsCategories, savingsProgress } from "./domain";
 import type { SavingsCategorySummary } from "./domain";
 import styles from "./Savings.module.css";
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 
 const colors = [
   "var(--color-saving)",
@@ -20,15 +21,20 @@ export function SavingsChart({
   saved,
   goal,
   onSetGoal,
+  serverCategories,
+  moneyUnit = "baht",
 }: {
   transactions: Transaction[];
   saved: number;
   goal: number | null;
   onSetGoal: () => void;
+  serverCategories?: SavingsCategorySummary[];
+  moneyUnit?: MoneyUnit;
 }) {
+  const amount = (value: number) => formatMoney(value, moneyUnit);
   const categories = useMemo(
-    () => calculateSavingsCategories(transactions, goal),
-    [transactions, goal],
+    () => serverCategories ?? calculateSavingsCategories(transactions, goal),
+    [transactions, goal, serverCategories],
   );
   const progress = savingsProgress(saved, goal);
   const over = progress !== null && progress > 100 ? progress - 100 : 0;
@@ -43,10 +49,13 @@ export function SavingsChart({
   const tooltip = (item: SavingsCategorySummary) => (
     <>
       <b>{item.name}</b>
-      <span>ยอดรวม ฿{money(item.total)}</span>
+      <span>ยอดรวม ฿{amount(item.total)}</span>
       <span>{money(Math.round(item.shareOfSavings))}% ของเงินเก็บทั้งหมด</span>
       <span>{item.count} รายการ</span>
-      <span>เฉลี่ย ฿{money(Math.round(item.average))}</span>
+      <span>
+        เฉลี่ย ฿
+        {amount(serverCategories ? item.average : Math.round(item.average))}
+      </span>
       {item.shareOfGoal === null || item.goalDifference === null ? (
         <span>ยังไม่ได้ตั้งเป้าหมาย</span>
       ) : (
@@ -54,9 +63,9 @@ export function SavingsChart({
           <span>{money(Math.round(item.shareOfGoal))}% ของเป้าหมาย</span>
           <span>
             {item.goalDifference < 0
-              ? `ยังขาด ฿${money(Math.abs(item.goalDifference))}`
+              ? `ยังขาด ฿${amount(Math.abs(item.goalDifference))}`
               : item.goalDifference > 0
-                ? `เกินเป้า ฿${money(item.goalDifference)} (${money(Math.round(over))}%)`
+                ? `เกินเป้า ฿${amount(item.goalDifference)} (${money(Math.round(over))}%)`
                 : "ถึงเป้าหมายแล้ว"}
           </span>
         </>
@@ -71,7 +80,7 @@ export function SavingsChart({
           <h3>เป้าหมายเงินเก็บ</h3>
           <p>
             {goal
-              ? `เก็บแล้ว ฿${money(saved)} จากเป้า ฿${money(goal)}`
+              ? `เก็บแล้ว ฿${amount(saved)} จากเป้า ฿${amount(goal)}`
               : "ยังไม่ได้ตั้งเป้าหมาย"}
           </p>
         </div>
@@ -91,7 +100,7 @@ export function SavingsChart({
             data-testid="savings-chart-center"
             style={{ pointerEvents: "none" }}
           >
-            <b>฿{money(saved)}</b>
+            <b>฿{amount(saved)}</b>
             <small>
               {progress === null
                 ? "เงินเก็บรวม"
@@ -105,7 +114,7 @@ export function SavingsChart({
         renderLegend={(item) => (
           <>
             <span>{item.name}</span>
-            <b>฿{money(item.total)}</b>
+            <b>฿{amount(item.total)}</b>
           </>
         )}
       />

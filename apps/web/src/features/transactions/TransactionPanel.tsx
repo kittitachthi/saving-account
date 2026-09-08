@@ -1,4 +1,5 @@
 import type { Transaction } from "./domain";
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 import type { TransactionFilter } from "./useTransactions";
 import styles from "./Transactions.module.css";
 import {
@@ -7,16 +8,17 @@ import {
   paginateTransactions,
   sortTransactionsNewestFirst,
 } from "./domain";
-const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
 type Props = {
   transactions: Transaction[];
   filter: TransactionFilter;
-  newItemId: number | null;
+  newItemId: Transaction["id"] | null;
   onFilter: (filter: TransactionFilter) => void;
-  onRequestDelete: (item: Transaction) => void;
+  onRequestDelete?: (item: Transaction) => void;
   page: number;
   now: Date;
   onPage: (page: number) => void;
+  serverPagination?: { page: number; totalPages: number };
+  moneyUnit?: MoneyUnit;
 };
 export function TransactionPanel({
   transactions,
@@ -27,11 +29,19 @@ export function TransactionPanel({
   page,
   now,
   onPage,
+  serverPagination,
+  moneyUnit = "baht",
 }: Props) {
   const filtered = sortTransactionsNewestFirst(
     filterTransactions(transactions, filter),
   );
-  const paged = paginateTransactions(filtered, page);
+  const paged = serverPagination
+    ? {
+        items: transactions,
+        currentPage: serverPagination.page,
+        totalPages: serverPagination.totalPages,
+      }
+    : paginateTransactions(filtered, page);
   return (
     <article className={styles.panel}>
       <div className={styles.panelHead}>
@@ -39,7 +49,7 @@ export function TransactionPanel({
           <h3>รายการล่าสุด</h3>
           <p>การเคลื่อนไหวล่าสุดของคุณ</p>
         </div>
-        <button>ดูทั้งหมด →</button>
+        {!serverPagination && <button>ดูทั้งหมด →</button>}
       </div>
       <div className={styles.filters} role="group" aria-label="กรองรายการ">
         {(
@@ -62,7 +72,7 @@ export function TransactionPanel({
       <div className={styles.transactionGroup}>
         {paged.items.map((item) => (
           <div
-            className={`${styles.transaction} ${newItemId === item.id ? styles.newItem : ""}`}
+            className={`${styles.transaction} ${!onRequestDelete ? styles.readOnly : ""} ${newItemId === item.id ? styles.newItem : ""}`}
             key={item.id}
           >
             <i className={styles[item.type]}>{item.icon}</i>
@@ -70,25 +80,30 @@ export function TransactionPanel({
               <b>{item.title}</b>
               <small>
                 {item.category} •{" "}
-                {item.createdAt
-                  ? formatTransactionDate(item.createdAt, now)
-                  : item.date}
+                {item.occurredOn
+                  ? `${item.occurredOn}${item.occurredTime ? ` ${item.occurredTime}` : ""}`
+                  : item.createdAt
+                    ? formatTransactionDate(item.createdAt, now)
+                    : item.date}
               </small>
             </div>
             <strong className={styles[item.type]}>
-              {item.type === "income" ? "+" : "−"}฿{money(item.amount)}.00
+              {item.type === "income" ? "+" : "−"}฿
+              {formatMoney(item.amount, moneyUnit, true)}
             </strong>
-            <button
-              className={styles.deleteButton}
-              aria-label={`ลบรายการ ${item.title}`}
-              title="ลบรายการ"
-              onClick={() => onRequestDelete(item)}
-            >
-              ×
-            </button>
+            {onRequestDelete && (
+              <button
+                className={styles.deleteButton}
+                aria-label={`ลบรายการ ${item.title}`}
+                title="ลบรายการ"
+                onClick={() => onRequestDelete(item)}
+              >
+                ×
+              </button>
+            )}
           </div>
         ))}
-        {!filtered.length && (
+        {!paged.items.length && (
           <p className={styles.empty}>ยังไม่มีรายการธุรกรรม</p>
         )}
       </div>

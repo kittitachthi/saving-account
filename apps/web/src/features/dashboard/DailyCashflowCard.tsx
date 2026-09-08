@@ -1,17 +1,22 @@
 import type { Transaction } from "../transactions/domain";
 import { useFloatingTooltip } from "../../shared/ui/useFloatingTooltip";
-import { calculateDailyCashflow } from "./domain";
+import { calculateDailyCashflow, type CashflowSegment } from "./domain";
 import styles from "./Dashboard.module.css";
-const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 
 export function DailyCashflowCard({
   transactions,
   now,
+  serverSegments,
+  moneyUnit = "baht",
 }: {
   transactions: Transaction[];
   now: Date;
+  serverSegments?: CashflowSegment[];
+  moneyUnit?: MoneyUnit;
 }) {
-  const segments = calculateDailyCashflow(transactions, now);
+  const money = (value: number) => formatMoney(value, moneyUnit);
+  const segments = serverSegments ?? calculateDailyCashflow(transactions, now);
   const {
     rootRef,
     activeIndex,
@@ -40,10 +45,12 @@ export function DailyCashflowCard({
             {segment.highest.map((item) => (
               <span key={item.id}>
                 {item.title} · ฿{money(item.amount)} ·{" "}
-                {new Intl.DateTimeFormat("th-TH", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }).format(new Date(item.createdAt!))}
+                {item.occurredOn
+                  ? (item.occurredTime ?? item.occurredOn)
+                  : new Intl.DateTimeFormat("th-TH", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }).format(new Date(item.createdAt!))}
               </span>
             ))}
           </div>

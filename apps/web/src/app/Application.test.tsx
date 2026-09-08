@@ -8,13 +8,14 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Application } from "./Application";
+import { stubApplicationFetch } from "../test/online-fixtures";
 
 describe("Protected financial application", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("offers Google Sign-in without rendering financial data to an anonymous user", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
     );
@@ -38,7 +39,7 @@ describe("Protected financial application", () => {
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 202 }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubApplicationFetch("fetch", fetchMock);
     render(<Application />);
 
     await screen.findByRole("heading", { name: "ขอเข้าร่วม Private Beta" });
@@ -66,7 +67,7 @@ describe("Protected financial application", () => {
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 401 }))
       .mockResolvedValueOnce(new Response(null, { status: 400 }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubApplicationFetch("fetch", fetchMock);
     render(<Application />);
     await screen.findByLabelText("อีเมล");
     await user.type(screen.getByLabelText("อีเมล"), "friend@example.com");
@@ -86,7 +87,7 @@ describe("Protected financial application", () => {
 
   it("keeps Login focus and Google treatment in sync with the theme", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
     );
@@ -114,7 +115,7 @@ describe("Protected financial application", () => {
 
   it("closes Login on the backdrop and restores trigger focus", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 401 })),
     );
@@ -127,7 +128,7 @@ describe("Protected financial application", () => {
   });
 
   it("renders the financial application after validating the Session", async () => {
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
@@ -154,7 +155,7 @@ describe("Protected financial application", () => {
   });
 
   it("shows the Google Profile Avatar and falls back to the name initial", async () => {
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
@@ -192,7 +193,7 @@ describe("Protected financial application", () => {
 
   it("opens an accessible Account Menu and restores trigger focus", async () => {
     const user = userEvent.setup();
-    vi.stubGlobal(
+    stubApplicationFetch(
       "fetch",
       vi.fn().mockResolvedValue(
         Response.json({
@@ -245,7 +246,7 @@ describe("Protected financial application", () => {
         }),
       )
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubApplicationFetch("fetch", fetchMock);
     render(<Application />);
     const trigger = (
       await screen.findAllByRole("button", {
@@ -309,7 +310,7 @@ describe("Protected financial application", () => {
       )
       .mockReturnValueOnce(pendingResponse)
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
-    vi.stubGlobal("fetch", fetchMock);
+    stubApplicationFetch("fetch", fetchMock);
     render(<Application />);
     const trigger = (
       await screen.findAllByRole("button", {

@@ -4,19 +4,28 @@ import { calculateMonthlyCashflow } from "./domain";
 import { DashboardMascot } from "./DashboardMascot";
 import type { MascotState } from "./useDashboardMascot";
 import { DailyCashflowCard } from "./DailyCashflowCard";
-const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
+import type { CashflowSegment } from "./domain";
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 export function DashboardSummary({
   totals,
   transactions,
   now,
   mascotState,
+  online,
+  moneyUnit = "baht",
 }: {
   totals: TransactionTotals;
   transactions: Transaction[];
   now: Date;
   mascotState: MascotState;
+  moneyUnit?: MoneyUnit;
+  online?: {
+    monthly: { income: number; expense: number };
+    daily: CashflowSegment[];
+  };
 }) {
-  const monthly = calculateMonthlyCashflow(transactions, now);
+  const monthly =
+    online?.monthly ?? calculateMonthlyCashflow(transactions, now);
   return (
     <>
       <section className={styles.hero}>
@@ -27,10 +36,7 @@ export function DashboardSummary({
         </div>
         <div className={styles.balance}>
           <p>ยอดเงินพร้อมใช้　◉</p>
-          <h2>
-            ฿{money(totals.balance)}
-            <small>.00</small>
-          </h2>
+          <h2>฿{formatMoney(totals.balance, moneyUnit, true)}</h2>
         </div>
         <DashboardMascot state={mascotState} />
       </section>
@@ -39,17 +45,22 @@ export function DashboardSummary({
           <i className={`${styles.stat} ${styles.incomeStat}`}>↙</i>
           <div>
             <p>รายรับเดือนนี้</p>
-            <h3>฿{money(monthly.income)}</h3>
+            <h3>฿{formatMoney(monthly.income, moneyUnit)}</h3>
           </div>
         </article>
         <article>
           <i className={`${styles.stat} ${styles.expenseStat}`}>↗</i>
           <div>
             <p>รายจ่ายเดือนนี้</p>
-            <h3>฿{money(monthly.expense)}</h3>
+            <h3>฿{formatMoney(monthly.expense, moneyUnit)}</h3>
           </div>
         </article>
-        <DailyCashflowCard transactions={transactions} now={now} />
+        <DailyCashflowCard
+          transactions={transactions}
+          now={now}
+          serverSegments={online?.daily}
+          moneyUnit={moneyUnit}
+        />
       </section>
     </>
   );

@@ -7,11 +7,11 @@ import { requireSameOriginMutation } from "./csrf.js";
 
 const SESSION_COOKIE = "saving_account_session";
 
-function readCookie(request: Request, name: string) {
+export function readSessionToken(request: Request) {
   const cookies = request.header("cookie")?.split(";") ?? [];
   for (const cookie of cookies) {
     const [key, ...value] = cookie.trim().split("=");
-    if (key === name) {
+    if (key === SESSION_COOKIE) {
       try {
         return decodeURIComponent(value.join("="));
       } catch {
@@ -96,7 +96,7 @@ export function registerAuthRoutes(
   });
 
   app.get("/api/auth/session", async (request, response) => {
-    const token = readCookie(request, SESSION_COOKIE);
+    const token = readSessionToken(request);
     const session = token ? await auth.authenticate(token) : null;
     if (!session) {
       rejectSession(response);
@@ -109,7 +109,7 @@ export function registerAuthRoutes(
     "/api/auth/session/renew",
     requireCsrf,
     async (request, response) => {
-      const token = readCookie(request, SESSION_COOKIE);
+      const token = readSessionToken(request);
       const session = token ? await auth.renew(token) : null;
       if (!session) {
         rejectSession(response);
@@ -124,7 +124,7 @@ export function registerAuthRoutes(
   );
 
   app.post("/api/auth/logout", requireCsrf, async (request, response) => {
-    const token = readCookie(request, SESSION_COOKIE);
+    const token = readSessionToken(request);
     if (!token || !(await auth.logout(token))) {
       rejectSession(response);
       return;

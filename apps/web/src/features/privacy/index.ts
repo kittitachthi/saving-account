@@ -1,0 +1,1 @@
+export { PrivacyGate } from "./PrivacyGate";

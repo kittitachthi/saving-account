@@ -33,16 +33,17 @@ enum NotificationKind {
 }
 
 model User {
-  id           String             @id @default(uuid()) @db.Uuid
-  email        String             @unique
-  displayName  String
-  avatarUrl    String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  authAccounts AuthAccount[]
-  sessions     Session[]
-  ownedWallets Wallet[]           @relation("WalletOwner")
-  memberships  WalletMembership[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  email              String              @unique
+  displayName        String
+  avatarUrl          String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  authAccounts       AuthAccount[]
+  sessions           Session[]
+  ownedWallets       Wallet[]            @relation("WalletOwner")
+  memberships        WalletMembership[]
+  privacyAcceptances PrivacyAcceptance[]
 }
 
 model AuthAccount {
@@ -57,14 +58,50 @@ model AuthAccount {
 }
 
 model Wallet {
-  id          String             @id @default(uuid()) @db.Uuid
-  ownerId     String             @db.Uuid
-  name        String
-  timezone    String             @default("Asia/Bangkok")
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  owner       User               @relation("WalletOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  memberships WalletMembership[]
+  id           String              @id @default(uuid()) @db.Uuid
+  ownerId      String              @db.Uuid
+  name         String
+  timezone     String              @default("Asia/Bangkok")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  owner        User                @relation("WalletOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  memberships  WalletMembership[]
+  transactions WalletTransaction[]
+  savingsGoal  SavingsGoal?
+}
+
+model PrivacyAcceptance {
+  userId     String   @db.Uuid
+  version    String
+  acceptedAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, version])
+}
+
+model WalletTransaction {
+  id           String   @id @default(uuid()) @db.Uuid
+  walletId     String   @db.Uuid
+  operationId  String   @db.Uuid
+  title        String
+  category     String
+  type         String
+  amount       BigInt
+  occurredOn   String   @db.VarChar(10)
+  occurredTime String?  @db.VarChar(5)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  wallet       Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, operationId])
+  @@index([walletId, occurredOn])
+}
+
+model SavingsGoal {
+  walletId  String   @id @db.Uuid
+  amount    BigInt
+  updatedAt DateTime @updatedAt
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
 model WalletMembership {
@@ -78,19 +115,19 @@ model WalletMembership {
 }
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  tokenHash String   @unique
-  expiresAt DateTime
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  tokenHash  String   @unique
+  expiresAt  DateTime
   lastSeenAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BetaAllowlist {
-  email     String   @id
-  addedAt   DateTime @default(now())
-  addedBy   String
+  email   String   @id
+  addedAt DateTime @default(now())
+  addedBy String
 }
 
 model BetaWaitlistEntry {
