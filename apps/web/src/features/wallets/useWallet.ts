@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CreateWalletTransaction,
+  EditWalletTransaction,
+  DeleteWalletTransaction,
+  WalletUndoReceipt,
   WalletSnapshot,
   WalletTransactionType,
 } from "@saving-account/contracts";
@@ -102,19 +105,37 @@ export function useWallet(
     return () => clearTimeout(timer);
   }, [snapshot, reload]);
 
-  const write = async (path: string, method: string, body: unknown) => {
+  const write = async (
+    path: string,
+    method: string,
+    body: unknown,
+    refresh: "wait" | "background" = "wait",
+  ) => {
     if (mutation.current) throw new Error("กำลังบันทึก กรุณารอสักครู่");
     mutation.current = true;
     setBusy(true);
     request.current?.abort();
     try {
-      await authenticatedRequest(`/api/wallets/${walletId}/${path}`, {
-        method,
-        body: JSON.stringify(body),
-      });
-      if (alive.current) await latestReload.current();
+      const response = await authenticatedRequest(
+        `/api/wallets/${walletId}/${path}`,
+        {
+          method,
+          body: JSON.stringify(body),
+        },
+      );
+      if (alive.current) {
+        if (refresh === "wait") await latestReload.current();
+        else void latestReload.current();
+      }
+      return response;
     } catch (error) {
-      if (alive.current) accessError(error);
+      if (
+        alive.current &&
+        !accessError(error) &&
+        error instanceof ApiError &&
+        error.code === "TRANSACTION_CHANGED"
+      )
+        await latestReload.current();
       throw error;
     } finally {
       mutation.current = false;
@@ -144,6 +165,34 @@ export function useWallet(
       setPage(1);
     },
     add,
-    setGoal: (amount: number) => write("savings-goal", "PUT", { amount }),
+    edit: async (id: string, input: EditWalletTransaction) => {
+      await write(`transactions/${id}`, "PATCH", input);
+    },
+    remove: async (id: string, input: DeleteWalletTransaction) => {
+      const started = performance.now();
+      const response = await write(
+        `transactions/${id}`,
+        "DELETE",
+        input,
+        "background",
+      );
+      const receipt = (await response.json()) as WalletUndoReceipt;
+      // Deduct the round trip conservatively; the server remains the deadline authority.
+      return {
+        ...receipt,
+        remainingMs: Math.max(
+          0,
+          Date.parse(receipt.undoUntil) -
+            Date.parse(receipt.serverTime) -
+            (performance.now() - started),
+        ),
+      };
+    },
+    restore: async (id: string, operationId: string) => {
+      await write(`transactions/${id}/restore`, "POST", { operationId });
+    },
+    setGoal: async (amount: number) => {
+      await write("savings-goal", "PUT", { amount });
+    },
   };
 }

@@ -5,6 +5,7 @@ export type Transaction = {
   category: string;
   date: string;
   createdAt?: string;
+  updatedAt?: string;
   amount: number;
   type: TransactionType;
   icon: string;

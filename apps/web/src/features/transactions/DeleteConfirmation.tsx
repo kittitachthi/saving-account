@@ -2,30 +2,39 @@ import { useEffect, useRef } from "react";
 import type { Transaction } from "./domain";
 import { Overlay } from "../../shared/ui/Overlay";
 import styles from "./Transactions.module.css";
-const money = (value: number) => new Intl.NumberFormat("th-TH").format(value);
+import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 type Props = {
   transaction: Transaction;
   onCancel: () => void;
   onConfirm: () => void;
   error?: string;
+  pending?: boolean;
+  moneyUnit?: MoneyUnit;
 };
 export function DeleteConfirmation({
   transaction,
   onCancel,
   onConfirm,
   error,
+  pending = false,
+  moneyUnit = "baht",
 }: Props) {
   const cancelRef = useRef<HTMLButtonElement>(null);
   useEffect(() => cancelRef.current?.focus(), []);
   useEffect(() => {
     const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
+      if (event.key === "Escape" && !pending) onCancel();
     };
     window.addEventListener("keydown", dismiss);
     return () => window.removeEventListener("keydown", dismiss);
-  }, [onCancel]);
+  }, [onCancel, pending]);
   return (
-    <Overlay onDismiss={onCancel} priority="alert">
+    <Overlay
+      onDismiss={() => {
+        if (!pending) onCancel();
+      }}
+      priority="alert"
+    >
       <section
         className={styles.confirmDialog}
         role="dialog"
@@ -40,7 +49,7 @@ export function DeleteConfirmation({
         </p>
         <strong className={styles[transaction.type]}>
           {transaction.type === "income" ? "+" : "−"}฿
-          {money(transaction.amount)}.00
+          {formatMoney(transaction.amount, moneyUnit, true)}
         </strong>
         {error && (
           <p className={styles.formError} role="alert">
@@ -48,11 +57,15 @@ export function DeleteConfirmation({
           </p>
         )}
         <div className={styles.confirmActions}>
-          <button ref={cancelRef} onClick={onCancel}>
+          <button ref={cancelRef} onClick={onCancel} disabled={pending}>
             ยกเลิก
           </button>
-          <button className={styles.dangerButton} onClick={onConfirm}>
-            ลบรายการ
+          <button
+            className={styles.dangerButton}
+            onClick={onConfirm}
+            disabled={pending}
+          >
+            {pending ? "กำลังลบ…" : "ลบรายการ"}
           </button>
         </div>
       </section>

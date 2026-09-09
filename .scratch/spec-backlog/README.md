@@ -1,6 +1,6 @@
 # Spec implementation backlog
 
-Approved breakdown: 27 tickets. Completed 01–05 on 2026-09-07 and 06–08 on 2026-09-08. The user then explicitly selected 10–12, now also complete: 11/27 total. Ticket 09 and 13–27 remain for subsequent batches; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
+Approved breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, and user-approved 13–14 on 2026-09-09: 13/27 total. Ticket 09 and 15–27 remain for subsequent batches; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
 
 Local tracking follows the existing repository convention; no external issues were published. Run `/setup-matt-pocock-skills` to configure an external tracker.
 
@@ -26,8 +26,8 @@ Verification for 01–05: 121 tests passed (35 API, 86 web), repository typechec
 10. [บังคับยอมรับ Beta Privacy Notice](issues/10-beta-privacy.md) — complete
 11. [บันทึกและอ่านรายรับ/รายจ่ายจาก Personal Wallet ออนไลน์](issues/11-online-transactions.md) — complete
 12. [จัดการเงินเก็บและ Savings Goal ออนไลน์](issues/12-online-savings.md) — complete
-13. [แก้ไข Transaction ออนไลน์](issues/13-edit-transaction.md) — deferred
-14. [ลบและ Undo Transaction ออนไลน์](issues/14-delete-undo-online.md) — deferred
+13. [แก้ไข Transaction ออนไลน์](issues/13-edit-transaction.md) — complete
+14. [ลบและ Undo Transaction ออนไลน์](issues/14-delete-undo-online.md) — complete
 15. [นำเข้าข้อมูลเดิมจากอุปกรณ์](issues/15-device-import.md) — deferred
 16. [Owner export ข้อมูล Wallet](issues/16-owner-export.md) — deferred
 17. [เชิญ Viewer และเปิด Wallet แบบอ่านอย่างเดียว](issues/17-invite-viewer.md) — deferred

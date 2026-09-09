@@ -136,6 +136,109 @@ export function registerWalletRoutes(
         );
     },
   );
+  const transactionId: RequestHandler = (request, response, next) => {
+    if (!z.uuid().safeParse(request.params.transactionId).success) {
+      response.status(400).json({
+        error: {
+          code: "BAD_REQUEST",
+          message: "Invalid transaction request",
+        },
+      });
+      return;
+    }
+    next();
+  };
+  const editInput = transactionInput
+    .omit({ operationId: true, type: true })
+    .extend({ expectedUpdatedAt: z.iso.datetime() })
+    .strict();
+  const deleteInput = z
+    .object({ operationId: z.uuid(), expectedUpdatedAt: z.iso.datetime() })
+    .strict();
+  const transactionPath = "/api/wallets/:walletId/transactions/:transactionId";
+  app.patch(
+    transactionPath,
+    csrf,
+    walletId,
+    transactionId,
+    async (request, response) => {
+      const parsed = editInput.safeParse(request.body);
+      if (!parsed.success) {
+        response.status(400).json({
+          error: {
+            code: "BAD_REQUEST",
+            message: "Invalid transaction request",
+          },
+        });
+        return;
+      }
+      response.json(
+        await repository.edit(
+          response.locals.userId,
+          String(request.params.walletId),
+          String(request.params.transactionId),
+          parsed.data,
+          now,
+        ),
+      );
+    },
+  );
+  app.delete(
+    transactionPath,
+    csrf,
+    walletId,
+    transactionId,
+    async (request, response) => {
+      const parsed = deleteInput.safeParse(request.body);
+      if (!parsed.success) {
+        response.status(400).json({
+          error: {
+            code: "BAD_REQUEST",
+            message: "Invalid transaction request",
+          },
+        });
+        return;
+      }
+      response.json(
+        await repository.remove(
+          response.locals.userId,
+          String(request.params.walletId),
+          String(request.params.transactionId),
+          parsed.data,
+          now,
+        ),
+      );
+    },
+  );
+  app.post(
+    `${transactionPath}/restore`,
+    csrf,
+    walletId,
+    transactionId,
+    async (request, response) => {
+      const parsed = z
+        .object({ operationId: z.uuid() })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success) {
+        response.status(400).json({
+          error: {
+            code: "BAD_REQUEST",
+            message: "Invalid transaction request",
+          },
+        });
+        return;
+      }
+      await repository.restore(
+        response.locals.userId,
+        String(request.params.walletId),
+        String(request.params.transactionId),
+        parsed.data.operationId,
+        now,
+      );
+      response.status(204).end();
+    },
+  );
   app.put(
     "/api/wallets/:walletId/savings-goal",
     csrf,

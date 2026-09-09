@@ -1,6 +1,9 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type {
   CreateWalletTransaction,
+  EditWalletTransaction,
+  DeleteWalletTransaction,
+  WalletUndoReceipt,
   WalletSnapshot,
   WalletTransaction,
 } from "@saving-account/contracts";
@@ -13,6 +16,8 @@ export class WalletAccessError extends Error {
       | "WALLET_FORBIDDEN"
       | "INSUFFICIENT_BALANCE"
       | "AMOUNT_LIMIT"
+      | "TRANSACTION_CHANGED"
+      | "UNDO_EXPIRED"
       | "OPERATION_CONFLICT",
   ) {
     super(code);
@@ -96,9 +101,11 @@ export class WalletRepository {
       async (tx) => {
         const wallet = await this.authorize(tx, userId, walletId);
         const items = sortWalletTransactions(
-          (await tx.walletTransaction.findMany({ where: { walletId } })).map(
-            toTransaction,
-          ),
+          (
+            await tx.walletTransaction.findMany({
+              where: { walletId, deletedAt: null },
+            })
+          ).map(toTransaction),
         );
         const goal = await tx.savingsGoal.findUnique({ where: { walletId } });
         const filtered =
@@ -149,12 +156,13 @@ export class WalletRepository {
           existing.amount === BigInt(input.amount) &&
           existing.occurredOn === input.occurredOn &&
           existing.occurredTime === input.occurredTime;
-        if (!same) throw new WalletAccessError("OPERATION_CONFLICT");
+        if (!same || existing.deletedAt)
+          throw new WalletAccessError("OPERATION_CONFLICT");
         return toTransaction(existing);
       }
       const sums = await tx.walletTransaction.groupBy({
         by: ["type"],
-        where: { walletId },
+        where: { walletId, deletedAt: null },
         _sum: { amount: true },
       });
       const totals = { income: 0n, expense: 0n, saving: 0n };
@@ -173,6 +181,157 @@ export class WalletRepository {
           data: { ...input, walletId, amount },
         }),
       );
+    });
+  }
+
+  private async checkReplacement(
+    tx: Prisma.TransactionClient,
+    walletId: string,
+    id: string,
+    replacement?: { type: string; amount: bigint },
+  ) {
+    const sums = await tx.walletTransaction.groupBy({
+      by: ["type"],
+      where: { walletId, deletedAt: null, id: { not: id } },
+      _sum: { amount: true },
+    });
+    const totals: Record<string, bigint> = {
+      income: 0n,
+      expense: 0n,
+      saving: 0n,
+    };
+    for (const sum of sums) totals[sum.type] = sum._sum.amount ?? 0n;
+    if (replacement) totals[replacement.type] += replacement.amount;
+    if (totals.income < totals.expense + totals.saving)
+      throw new WalletAccessError("INSUFFICIENT_BALANCE");
+    if (
+      Object.values(totals).some(
+        (amount) => amount > BigInt(Number.MAX_SAFE_INTEGER),
+      )
+    )
+      throw new WalletAccessError("AMOUNT_LIMIT");
+  }
+
+  private async changeTransaction<T>(
+    userId: string,
+    walletId: string,
+    id: string,
+    change: (
+      tx: Prisma.TransactionClient,
+      row: import("@prisma/client").WalletTransaction,
+    ) => Promise<T>,
+  ) {
+    return this.client.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Wallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`;
+      await this.authorize(tx, userId, walletId);
+      const row = await tx.walletTransaction.findFirst({
+        where: { id, walletId },
+      });
+      if (!row) throw new WalletAccessError("TRANSACTION_CHANGED");
+      return change(tx, row);
+    });
+  }
+
+  async edit(
+    userId: string,
+    walletId: string,
+    id: string,
+    input: EditWalletTransaction,
+    now = () => new Date(),
+  ) {
+    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
+      if (
+        row.deletedAt ||
+        row.updatedAt.toISOString() !== input.expectedUpdatedAt
+      )
+        throw new WalletAccessError("TRANSACTION_CHANGED");
+      const { expectedUpdatedAt: _version, ...fields } = input;
+      const amount = BigInt(fields.amount);
+      await this.checkReplacement(tx, walletId, id, { type: row.type, amount });
+      return toTransaction(
+        await tx.walletTransaction.update({
+          where: { id },
+          data: {
+            ...fields,
+            amount,
+            updatedAt: new Date(
+              Math.max(now().getTime(), row.updatedAt.getTime() + 1),
+            ),
+          },
+        }),
+      );
+    });
+  }
+
+  async remove(
+    userId: string,
+    walletId: string,
+    id: string,
+    input: DeleteWalletTransaction,
+    now = () => new Date(),
+  ): Promise<WalletUndoReceipt> {
+    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
+      if (row.deleteOperationId === input.operationId && row.deletedAt) {
+        return {
+          operationId: input.operationId,
+          undoUntil: new Date(row.deletedAt.getTime() + 5000).toISOString(),
+          serverTime: now().toISOString(),
+        };
+      }
+      if (
+        row.deletedAt ||
+        row.updatedAt.toISOString() !== input.expectedUpdatedAt ||
+        row.deleteOperationId === input.operationId
+      )
+        throw new WalletAccessError("TRANSACTION_CHANGED");
+      await this.checkReplacement(tx, walletId, id);
+      const deletedAt = now();
+      await tx.walletTransaction.update({
+        where: { id },
+        data: {
+          deletedAt,
+          deleteOperationId: input.operationId,
+          updatedAt: new Date(
+            Math.max(deletedAt.getTime(), row.updatedAt.getTime() + 1),
+          ),
+        },
+      });
+      return {
+        operationId: input.operationId,
+        undoUntil: new Date(deletedAt.getTime() + 5000).toISOString(),
+        serverTime: now().toISOString(),
+      };
+    });
+  }
+
+  async restore(
+    userId: string,
+    walletId: string,
+    id: string,
+    operationId: string,
+    now = () => new Date(),
+  ) {
+    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
+      if (row.deleteOperationId !== operationId)
+        throw new WalletAccessError("TRANSACTION_CHANGED");
+      // A retried successful Undo must not apply money twice or overwrite later edits.
+      if (!row.deletedAt) return;
+      if (now().getTime() >= row.deletedAt.getTime() + 5000)
+        throw new WalletAccessError("UNDO_EXPIRED");
+      await this.checkReplacement(tx, walletId, id, row);
+      // Validate again after database work, while still holding the Wallet lock.
+      const restoredAt = now();
+      if (restoredAt.getTime() >= row.deletedAt.getTime() + 5000)
+        throw new WalletAccessError("UNDO_EXPIRED");
+      await tx.walletTransaction.update({
+        where: { id },
+        data: {
+          deletedAt: null,
+          updatedAt: new Date(
+            Math.max(restoredAt.getTime(), row.updatedAt.getTime() + 1),
+          ),
+        },
+      });
     });
   }
 

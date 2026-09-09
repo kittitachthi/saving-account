@@ -4,10 +4,10 @@
 
 **Blocked by:** 11: บันทึกและอ่านรายรับ/รายจ่ายจาก Personal Wallet ออนไลน์.
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** ผู้ใช้อนุมัติ batch 13–14; completed 2026-09-09.
 
-- [ ] แก้ชื่อ/จำนวน/หมวด/วันที่และเวลาโดย validation สอดคล้องกับการสร้าง
-- [ ] createdAt คงเดิม updatedAt เปลี่ยนโดยระบบ
-- [ ] ทดสอบ unauthorized writes, ยอดผิดเงื่อนไข และข้อมูลข้ามอุปกรณ์
+- [x] แก้ชื่อ/จำนวน/หมวด/วันที่และเวลาโดย validation สอดคล้องกับการสร้าง
+- [x] createdAt คงเดิม updatedAt เปลี่ยนโดยระบบ
+- [x] ทดสอบ unauthorized writes, ยอดผิดเงื่อนไข และข้อมูลข้ามอุปกรณ์

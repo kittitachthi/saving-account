@@ -1,4 +1,5 @@
 import type { Transaction } from "./domain";
+import { TransactionActions } from "./TransactionActions";
 import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 import type { TransactionFilter } from "./useTransactions";
 import styles from "./Transactions.module.css";
@@ -14,6 +15,8 @@ type Props = {
   newItemId: Transaction["id"] | null;
   onFilter: (filter: TransactionFilter) => void;
   onRequestDelete?: (item: Transaction) => void;
+  onRequestEdit?: (item: Transaction) => void;
+  actionsDisabled?: boolean;
   page: number;
   now: Date;
   onPage: (page: number) => void;
@@ -26,6 +29,8 @@ export function TransactionPanel({
   newItemId,
   onFilter,
   onRequestDelete,
+  onRequestEdit,
+  actionsDisabled,
   page,
   now,
   onPage,
@@ -91,15 +96,24 @@ export function TransactionPanel({
               {item.type === "income" ? "+" : "−"}฿
               {formatMoney(item.amount, moneyUnit, true)}
             </strong>
-            {onRequestDelete && (
-              <button
-                className={styles.deleteButton}
-                aria-label={`ลบรายการ ${item.title}`}
-                title="ลบรายการ"
-                onClick={() => onRequestDelete(item)}
-              >
-                ×
-              </button>
+            {onRequestEdit && onRequestDelete ? (
+              <TransactionActions
+                item={item}
+                onEdit={onRequestEdit}
+                onDelete={onRequestDelete}
+                disabled={actionsDisabled}
+              />
+            ) : (
+              onRequestDelete && (
+                <button
+                  className={styles.deleteButton}
+                  aria-label={`ลบรายการ ${item.title}`}
+                  title="ลบรายการ"
+                  onClick={() => onRequestDelete(item)}
+                >
+                  ×
+                </button>
+              )
             )}
           </div>
         ))}

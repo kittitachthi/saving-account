@@ -26,6 +26,10 @@ function server({ accepted = true } = {}) {
   let version = "v1";
   let deny = "";
   let failedWrites = 0;
+  let mutationFailure = "";
+  let removed: WalletSnapshot["transactions"][number] | null = null;
+  let holdReads = false;
+  let finishRead: (() => void) | undefined;
   const writes: CreateWalletTransaction[] = [];
   const fetchMock = vi.fn(async (path: string, options?: RequestInit) => {
     if (path === "/api/auth/session" || path === "/api/auth/session/renew")
@@ -49,6 +53,50 @@ function server({ accepted = true } = {}) {
         { error: { code: deny } },
         { status: deny === "UNAUTHENTICATED" ? 401 : 403 },
       );
+    if (
+      ["PATCH", "DELETE"].includes(options?.method ?? "") ||
+      path.endsWith("/restore")
+    ) {
+      if (mutationFailure)
+        return Response.json(
+          { error: { code: mutationFailure } },
+          { status: 409 },
+        );
+      const input = JSON.parse(String(options?.body));
+      if (options?.method === "PATCH") {
+        snapshot = {
+          ...snapshot,
+          transactions: [
+            {
+              ...snapshot.transactions[0],
+              ...input,
+              updatedAt: "2026-09-09T01:00:00.001Z",
+            },
+          ],
+        };
+        return Response.json(snapshot.transactions[0]);
+      }
+      if (options?.method === "DELETE") {
+        const id = path.split("/").at(-1);
+        removed = snapshot.transactions.find((item) => item.id === id) ?? null;
+        snapshot = {
+          ...snapshot,
+          transactions: snapshot.transactions.filter((item) => item.id !== id),
+        };
+        return Response.json({
+          operationId: input.operationId,
+          serverTime: new Date().toISOString(),
+          undoUntil: new Date(Date.now() + 5000).toISOString(),
+        });
+      }
+      snapshot = {
+        ...snapshot,
+        transactions: removed
+          ? [...snapshot.transactions, removed]
+          : snapshot.transactions,
+      };
+      return new Response(null, { status: 204 });
+    }
     if (options?.method === "POST") {
       const input = JSON.parse(String(options.body)) as CreateWalletTransaction;
       writes.push(input);
@@ -85,12 +133,26 @@ function server({ accepted = true } = {}) {
       snapshot = { ...snapshot, goal: JSON.parse(String(options.body)).amount };
       return new Response(null, { status: 204 });
     }
+    if (holdReads)
+      await new Promise<void>((resolve) => {
+        finishRead = resolve;
+      });
     return Response.json(snapshot);
   });
   vi.stubGlobal("fetch", fetchMock);
   return {
     fetchMock,
     writes,
+    failMutation: (code: string) => {
+      mutationFailure = code;
+    },
+    holdReads: () => {
+      holdReads = true;
+    },
+    releaseRead: () => {
+      holdReads = false;
+      finishRead?.();
+    },
     setSnapshot: (value: WalletSnapshot) => {
       snapshot = value;
     },
@@ -119,9 +181,190 @@ async function openTransaction(type = "รายรับ", amount = "10.25") {
   });
   return form;
 }
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 describe("online financial workflows through Application", () => {
+  it("edits exact amounts and historical fields through row actions, keeping errors open", async () => {
+    const api = server();
+    render(<Application />);
+    const create = await openTransaction("รายรับ", "100.29");
+    fireEvent.submit(create);
+    await waitFor(() => expect(create).not.toBeInTheDocument());
+    fireEvent.click(
+      screen.getByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "แก้ไข" }));
+    const form = screen.getByRole("form", { name: "แก้ไขรายการ" });
+    expect(within(form).getByLabelText("จำนวนเงิน (บาท)")).toHaveValue(100.29);
+    expect(
+      within(form).getByRole("button", { name: "รายจ่าย" }),
+    ).toBeDisabled();
+    fireEvent.change(within(form).getByLabelText("จำนวนเงิน (บาท)"), {
+      target: { value: "90071992547409.91" },
+    });
+    fireEvent.change(within(form).getByLabelText("ชื่อรายการ"), {
+      target: { value: "แก้ย้อนหลัง" },
+    });
+    fireEvent.change(within(form).getByLabelText("หมวดหมู่"), {
+      target: { value: "โบนัส" },
+    });
+    fireEvent.change(within(form).getByLabelText("วันที่เกิดรายการ"), {
+      target: { value: "2026-08-31" },
+    });
+    fireEvent.change(
+      within(form).getByLabelText("เวลาเกิดรายการ (ไม่บังคับ)"),
+      { target: { value: "23:59" } },
+    );
+    api.failMutation("TRANSACTION_CHANGED");
+    fireEvent.submit(form);
+    await within(form).findByRole("alert");
+    expect(form).toBeInTheDocument();
+    api.failMutation("");
+    fireEvent.submit(form);
+    await waitFor(() => expect(form).not.toBeInTheDocument());
+    await screen.findByText("แก้ย้อนหลัง");
+    const call = api.fetchMock.mock.calls.find(
+      ([, options]) => options?.method === "PATCH",
+    )!;
+    expect(JSON.parse(String(call[1]?.body))).toEqual({
+      title: "แก้ย้อนหลัง",
+      category: "โบนัส",
+      amount: Number.MAX_SAFE_INTEGER,
+      occurredOn: "2026-08-31",
+      occurredTime: "23:59",
+      expectedUpdatedAt: expect.any(String),
+    });
+  });
+
+  it("confirms exact deletion, reports server failure, and restores only after successful Undo", async () => {
+    const api = server();
+    render(<Application />);
+    const form = await openTransaction("รายรับ", "100.29");
+    fireEvent.submit(form);
+    await waitFor(() => expect(form).not.toBeInTheDocument());
+    const trigger = screen.getByRole("button", {
+      name: "จัดการรายการ ออนไลน์ทดสอบ",
+    });
+    fireEvent.click(trigger);
+    fireEvent.keyDown(trigger, { key: "Escape" });
+    expect(
+      screen.queryByRole("button", { name: "ลบ" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveTextContent("฿100.29");
+    api.failMutation("INSUFFICIENT_BALANCE");
+    fireEvent.click(within(dialog).getByRole("button", { name: "ลบรายการ" }));
+    await within(dialog).findByRole("alert");
+    expect(
+      screen.queryByRole("button", { name: "Undo" }),
+    ).not.toBeInTheDocument();
+    api.failMutation("");
+    fireEvent.click(within(dialog).getByRole("button", { name: "ลบรายการ" }));
+    const undo = await screen.findByRole("button", { name: "Undo" });
+    expect(undo).toHaveFocus();
+    expect(
+      screen.queryByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" }),
+    ).not.toBeInTheDocument();
+    api.failMutation("INSUFFICIENT_BALANCE");
+    fireEvent.click(undo);
+    await screen.findByRole("alert");
+    expect(
+      screen.queryByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" }),
+    ).not.toBeInTheDocument();
+    api.failMutation("");
+    await waitFor(() => expect(undo).toBeEnabled());
+    fireEvent.click(undo);
+    await screen.findByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" });
+    expect(
+      screen.queryByRole("button", { name: "Undo" }),
+    ).not.toBeInTheDocument();
+    const deletes = api.fetchMock.mock.calls.filter(
+      ([, options]) => options?.method === "DELETE",
+    );
+    expect(deletes[0][1]?.body).toBe(deletes[1][1]?.body);
+  });
+
+  it("replaces Undo with the most recent confirmed deletion", async () => {
+    const api = server();
+    const initial = emptyWallet();
+    initial.transactions = ["first", "second"].map((id) => ({
+      id,
+      title: id,
+      category: "รายรับ",
+      type: "income",
+      amount: 100,
+      occurredOn: initial.today,
+      occurredTime: null,
+      createdAt: "2026-09-09T00:00:00.000Z",
+      updatedAt: "2026-09-09T00:00:00.000Z",
+    }));
+    api.setSnapshot(initial);
+    render(<Application />);
+    for (const id of ["first", "second"]) {
+      fireEvent.click(
+        await screen.findByRole("button", { name: `จัดการรายการ ${id}` }),
+      );
+      fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "ลบรายการ",
+        }),
+      );
+      await waitFor(() =>
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+      );
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    await screen.findByRole("button", { name: "จัดการรายการ second" });
+    expect(
+      screen.queryByRole("button", { name: "จัดการรายการ first" }),
+    ).not.toBeInTheDocument();
+    expect(
+      api.fetchMock.mock.calls.filter(([path]) =>
+        path.endsWith("/restore"),
+      )[0][0],
+    ).toBe("/api/wallets/wallet/transactions/second/restore");
+  });
+
+  it("shows usable Undo before a slow refresh, then expires it and returns keyboard focus", async () => {
+    const api = server();
+    render(<Application />);
+    const form = await openTransaction();
+    fireEvent.submit(form);
+    await waitFor(() => expect(form).not.toBeInTheDocument());
+    fireEvent.click(
+      screen.getByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "ลบ" }));
+    api.holdReads();
+    vi.useFakeTimers();
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "ลบรายการ",
+      }),
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(screen.getByRole("button", { name: "Undo" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Undo" })).toHaveFocus();
+    expect(
+      screen.getByRole("button", { name: "จัดการรายการ ออนไลน์ทดสอบ" }),
+    ).toBeEnabled();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+    expect(
+      screen.queryByRole("button", { name: "Undo" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "รีเฟรชข้อมูล" })).toHaveFocus();
+    await act(async () => api.releaseRead());
+  });
   it("requires explicit current acceptance, supports decline and does not fetch finances first", async () => {
     const api = server({ accepted: false });
     render(<Application />);

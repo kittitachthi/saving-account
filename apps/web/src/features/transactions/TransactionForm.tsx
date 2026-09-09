@@ -3,13 +3,18 @@ import type { FormEvent } from "react";
 import type { Transaction, TransactionType } from "./domain";
 import { Overlay } from "../../shared/ui/Overlay";
 import styles from "./Transactions.module.css";
-import { parseBahtToSatang, formatMoney } from "../../shared/money-input";
+import {
+  parseBahtToSatang,
+  formatMoney,
+  satangToDecimal,
+} from "../../shared/money-input";
 
 type Props = {
   onClose: () => void;
   onAdd: (item: Transaction) => boolean | Promise<boolean>;
   availableBalance: number;
   walletToday?: string;
+  initialTransaction?: Transaction;
 };
 const savingCategories = [
   "เงินฉุกเฉิน",
@@ -25,15 +30,24 @@ export function TransactionForm({
   onAdd,
   availableBalance,
   walletToday,
+  initialTransaction,
 }: Props) {
-  const [occurredOn, setOccurredOn] = useState(walletToday ?? "");
-  const [occurredTime, setOccurredTime] = useState("");
+  const [occurredOn, setOccurredOn] = useState(
+    initialTransaction?.occurredOn ?? walletToday ?? "",
+  );
+  const [occurredTime, setOccurredTime] = useState(
+    initialTransaction?.occurredTime ?? "",
+  );
   const [pending, setPending] = useState(false);
   const saving = useRef(false);
-  const [type, setType] = useState<TransactionType>("expense"),
-    [title, setTitle] = useState(""),
-    [amount, setAmount] = useState(""),
-    [category, setCategory] = useState("อาหาร"),
+  const [type, setType] = useState<TransactionType>(
+      initialTransaction?.type ?? "expense",
+    ),
+    [title, setTitle] = useState(initialTransaction?.title ?? ""),
+    [amount, setAmount] = useState(
+      initialTransaction ? satangToDecimal(initialTransaction.amount) : "",
+    ),
+    [category, setCategory] = useState(initialTransaction?.category ?? "อาหาร"),
     [customCategory, setCustomCategory] = useState(""),
     [error, setError] = useState("");
   const chooseType = (next: TransactionType) => {
@@ -51,13 +65,22 @@ export function TransactionForm({
     }
     const value = walletToday ? amountSatang : Number(amount);
     if (!title.trim() || value <= 0) return;
-    if ((type === "expense" || type === "saving") && value > availableBalance) {
+    if (
+      !initialTransaction &&
+      (type === "expense" || type === "saving") &&
+      value > availableBalance
+    ) {
       setError(
         `ยอด${type === "expense" ? "รายจ่าย" : "เงินเก็บ"}มากกว่าเงินพร้อมใช้ ${formatMoney(value - availableBalance, walletToday ? "satang" : "baht")} บาท`,
       );
       return;
     }
-    if (type === "saving" && category === "อื่น ๆ" && !customCategory.trim()) {
+    if (
+      !initialTransaction &&
+      type === "saving" &&
+      category === "อื่น ๆ" &&
+      !customCategory.trim()
+    ) {
       setError("กรุณาระบุประเภทเงินเก็บ");
       return;
     }
@@ -72,8 +95,9 @@ export function TransactionForm({
     const item: Transaction = {
       id: Date.now(),
       title: title.trim(),
-      category:
-        type === "income"
+      category: initialTransaction
+        ? category.trim()
+        : type === "income"
           ? "รายรับ"
           : type === "saving" && category === "อื่น ๆ"
             ? customCategory.trim()
@@ -120,12 +144,12 @@ export function TransactionForm({
     >
       <form
         className={styles.form}
-        aria-label="เพิ่มรายการใหม่"
+        aria-label={initialTransaction ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}
         onSubmit={save}
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className={styles.formHead}>
-          <h3>เพิ่มรายการใหม่</h3>
+          <h3>{initialTransaction ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}</h3>
           <button
             type="button"
             aria-label="ปิด"
@@ -139,6 +163,7 @@ export function TransactionForm({
           <div className={styles.switch}>
             <button
               type="button"
+              disabled={!!initialTransaction}
               className={type === "expense" ? styles.on : undefined}
               onClick={() => chooseType("expense")}
             >
@@ -146,6 +171,7 @@ export function TransactionForm({
             </button>
             <button
               type="button"
+              disabled={!!initialTransaction}
               className={
                 type === "income"
                   ? `${styles.on} ${styles.incomeOn}`
@@ -157,6 +183,7 @@ export function TransactionForm({
             </button>
             <button
               type="button"
+              disabled={!!initialTransaction}
               className={
                 type === "saving"
                   ? `${styles.on} ${styles.savingOn}`
@@ -197,7 +224,18 @@ export function TransactionForm({
               placeholder="0.00"
             />
           </label>
-          {(type === "expense" || type === "saving") && (
+          {initialTransaction && (
+            <label>
+              หมวดหมู่
+              <input
+                required
+                maxLength={80}
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+              />
+            </label>
+          )}
+          {!initialTransaction && (type === "expense" || type === "saving") && (
             <label>
               {type === "saving" ? "ประเภทเงินเก็บ" : "หมวดหมู่"}
               <select
@@ -234,16 +272,18 @@ export function TransactionForm({
               </label>
             </>
           )}
-          {type === "saving" && category === "อื่น ๆ" && (
-            <label>
-              ชื่อประเภทเงินเก็บ
-              <input
-                value={customCategory}
-                maxLength={80}
-                onChange={(event) => setCustomCategory(event.target.value)}
-              />
-            </label>
-          )}
+          {!initialTransaction &&
+            type === "saving" &&
+            category === "อื่น ๆ" && (
+              <label>
+                ชื่อประเภทเงินเก็บ
+                <input
+                  value={customCategory}
+                  maxLength={80}
+                  onChange={(event) => setCustomCategory(event.target.value)}
+                />
+              </label>
+            )}
           {error && (
             <p className={styles.formError} role="alert">
               {error}

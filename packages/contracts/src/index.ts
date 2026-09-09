@@ -66,3 +66,20 @@ export type WalletSnapshot = {
   savingsCategories: WalletCategory[];
   goal: number | null;
 };
+export type EditWalletTransaction = Omit<
+  CreateWalletTransaction,
+  "operationId" | "type"
+> & {
+  expectedUpdatedAt: string;
+};
+
+export type DeleteWalletTransaction = {
+  operationId: string;
+  expectedUpdatedAt: string;
+};
+
+export type WalletUndoReceipt = {
+  operationId: string;
+  undoUntil: string;
+  serverTime: string;
+};

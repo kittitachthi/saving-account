@@ -4,10 +4,10 @@
 
 **Blocked by:** 11: บันทึกและอ่านรายรับ/รายจ่ายจาก Personal Wallet ออนไลน์.
 
-**Status:** ready-for-agent
+**Status:** complete
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** ผู้ใช้อนุมัติ batch 13–14; completed 2026-09-09.
 
-- [ ] รักษา Delete Confirmation และ Undo Window เดิม
-- [ ] ตรวจ Owner และกฎยอดเงินทุกคำขอ รวมการแข่งขันจากหลายอุปกรณ์
-- [ ] ล้มเหลวแสดงข้อผิดพลาดและไม่รายงานผลสำเร็จหลอก
+- [x] รักษา Delete Confirmation และ Undo Window เดิม
+- [x] ตรวจ Owner และกฎยอดเงินทุกคำขอ รวมการแข่งขันจากหลายอุปกรณ์
+- [x] ล้มเหลวแสดงข้อผิดพลาดและไม่รายงานผลสำเร็จหลอก
