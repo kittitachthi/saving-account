@@ -1,23 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  calculateTotals,
-  canRemoveTransaction,
-  removeTransaction,
-  restoreTransaction,
-  sortTransactionsNewestFirst,
+  transactionTotalsCalculate,
+  transactionRemoveValidate,
+  transactionRemove,
+  transactionRestore,
+  transactionNewestFirstSort,
 } from "./domain";
 import type {
   RemovedTransaction,
   Transaction,
   TransactionType,
 } from "./domain";
-import { loadTransactions, saveTransactions } from "./storage";
+import { transactionStorageLoad, transactionStorageSave } from "./storage";
 
 export type TransactionFilter = "all" | TransactionType;
 const UNDO_MS = 5000;
-export const useTransactions = (fallback: Transaction[]) => {
+export const useTransactionCollection = (fallback: Transaction[]) => {
   const [transactions, setTransactions] = useState(() =>
-    sortTransactionsNewestFirst(loadTransactions(fallback)),
+    transactionNewestFirstSort(transactionStorageLoad(fallback)),
   );
   const [filter, setFilter] = useState<TransactionFilter>("all");
   const [page, setPage] = useState(1);
@@ -29,10 +29,10 @@ export const useTransactions = (fallback: Transaction[]) => {
   const [removed, setRemoved] = useState<RemovedTransaction | null>(null);
   const [newItemId, setNewItemId] = useState<Transaction["id"] | null>(null);
   const persistedTransactions = useRef(transactions);
-  const commitTransactions = (next: Transaction[]) => {
-    saveTransactions(next);
-    persistedTransactions.current = next;
-    setTransactions(next);
+  const transactionCollectionPersist = (nextTransactions: Transaction[]) => {
+    transactionStorageSave(nextTransactions);
+    persistedTransactions.current = nextTransactions;
+    setTransactions(nextTransactions);
   };
   useEffect(() => {
     if (newItemId === null) return;
@@ -52,39 +52,42 @@ export const useTransactions = (fallback: Transaction[]) => {
     const timer = window.setTimeout(() => setNow(new Date()), delay);
     return () => clearTimeout(timer);
   }, [now]);
-  const totals = calculateTotals(transactions);
-  const addTransaction = (item: Transaction) => {
+  const totals = transactionTotalsCalculate(transactions);
+  const transactionCreate = (transaction: Transaction) => {
     try {
-      commitTransactions(
-        sortTransactionsNewestFirst([item, ...persistedTransactions.current]),
+      transactionCollectionPersist(
+        transactionNewestFirstSort([
+          transaction,
+          ...persistedTransactions.current,
+        ]),
       );
     } catch {
       return false;
     }
     setPage(1);
-    setNewItemId(item.id);
+    setNewItemId(transaction.id);
     return true;
   };
-  const changeFilter = (next: TransactionFilter) => {
-    setFilter(next);
+  const transactionFilterChange = (nextFilter: TransactionFilter) => {
+    setFilter(nextFilter);
     setPage(1);
   };
-  const setPendingDelete = (item: Transaction | null) => {
-    setPendingDeleteState(item);
+  const transactionDeleteRequest = (transaction: Transaction | null) => {
+    setPendingDeleteState(transaction);
     setDeleteError("");
   };
-  const confirmDelete = () => {
+  const transactionDeleteConfirm = () => {
     if (!pendingDelete) return;
-    if (!canRemoveTransaction(transactions, pendingDelete.id)) {
+    if (!transactionRemoveValidate(transactions, pendingDelete.id)) {
       const shortage = Math.abs(totals.balance - pendingDelete.amount);
       setDeleteError(
         `ไม่สามารถลบรายรับได้ เงินพร้อมใช้จะติดลบ ${new Intl.NumberFormat("th-TH").format(shortage)} บาท`,
       );
       return;
     }
-    const result = removeTransaction(transactions, pendingDelete.id);
+    const result = transactionRemove(transactions, pendingDelete.id);
     try {
-      commitTransactions(result.transactions);
+      transactionCollectionPersist(result.transactions);
     } catch {
       setDeleteError("ลบรายการไม่สำเร็จ กรุณาลองอีกครั้ง");
       return;
@@ -92,11 +95,11 @@ export const useTransactions = (fallback: Transaction[]) => {
     setRemoved(result.removed);
     setPendingDeleteState(null);
   };
-  const undoDelete = () => {
+  const transactionDeleteUndo = () => {
     if (!removed) return;
     try {
-      commitTransactions(
-        restoreTransaction(persistedTransactions.current, removed),
+      transactionCollectionPersist(
+        transactionRestore(persistedTransactions.current, removed),
       );
     } catch {
       return;
@@ -107,17 +110,17 @@ export const useTransactions = (fallback: Transaction[]) => {
     transactions,
     totals,
     filter,
-    setFilter: changeFilter,
+    transactionFilterChange,
     page,
-    setPage,
+    transactionPageChange: setPage,
     now,
     pendingDelete,
-    setPendingDelete,
+    transactionDeleteRequest,
     deleteError,
-    confirmDelete,
+    transactionDeleteConfirm,
     removed,
-    undoDelete,
+    transactionDeleteUndo,
     newItemId,
-    addTransaction,
+    transactionCreate,
   };
 };

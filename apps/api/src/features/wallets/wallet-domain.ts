@@ -4,7 +4,7 @@ import type {
   WalletTransaction,
 } from "@saving-account/contracts";
 
-export const walletDay = (now: Date) =>
+export const walletDayCalculate = (now: Date) =>
   new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
     year: "numeric",
@@ -12,7 +12,7 @@ export const walletDay = (now: Date) =>
     day: "2-digit",
   }).format(now);
 
-export const sortWalletTransactions = (items: WalletTransaction[]) =>
+export const walletTransactionSort = (items: WalletTransaction[]) =>
   [...items].sort(
     (a, b) =>
       b.occurredOn.localeCompare(a.occurredOn) ||
@@ -21,7 +21,9 @@ export const sortWalletTransactions = (items: WalletTransaction[]) =>
       b.id.localeCompare(a.id),
   );
 
-function categories(items: WalletTransaction[]): WalletCategory[] {
+function walletCategorySummariesCalculate(
+  items: WalletTransaction[],
+): WalletCategory[] {
   const groups = new Map<string, { total: number; count: number }>();
   for (const item of items) {
     const group = groups.get(item.category) ?? { total: 0, count: 0 };
@@ -38,8 +40,8 @@ function categories(items: WalletTransaction[]): WalletCategory[] {
     }));
 }
 
-export function summarizeWallet(items: WalletTransaction[], now: Date) {
-  const today = walletDay(now);
+export function walletSnapshotSummarize(items: WalletTransaction[], now: Date) {
+  const today = walletDayCalculate(now);
   const totals = { income: 0, expense: 0, saving: 0, balance: 0 };
   const monthly = { income: 0, expense: 0 };
   for (const item of items) {
@@ -64,7 +66,7 @@ export function summarizeWallet(items: WalletTransaction[], now: Date) {
         type,
         total: matching.reduce((sum, item) => sum + item.amount, 0),
         count: matching.length,
-        highest: sortWalletTransactions(
+        highest: walletTransactionSort(
           matching.filter((item) => item.amount === maximum),
         ),
       };
@@ -78,14 +80,14 @@ export function summarizeWallet(items: WalletTransaction[], now: Date) {
     totals,
     monthly,
     daily,
-    expenseCategories: categories(
+    expenseCategories: walletCategorySummariesCalculate(
       items.filter(
         (item) =>
           item.type === "expense" &&
           item.occurredOn.slice(0, 7) === today.slice(0, 7),
       ),
     ),
-    savingsCategories: categories(
+    savingsCategories: walletCategorySummariesCalculate(
       items.filter((item) => item.type === "saving"),
     ),
   };

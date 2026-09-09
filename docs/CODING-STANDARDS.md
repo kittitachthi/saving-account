@@ -70,6 +70,6 @@ These are examples for responsibilities that exist, not a requirement to introdu
 
 - These rules apply immediately to new code. Materially changed components/functions should adopt them within the current task's scope.
 - Existing code is migration work, not a precedent for adding further exceptions. If splitting a shared stylesheet or renaming a public method would expand the task substantially, identify the affected code and record the remaining work; do not silently rewrite unrelated features.
-- Initial migration candidates include `Transactions.module.css` and its consumers, and generic wallet operations such as `add`, `create` and `edit`. Migration must preserve public behavior, money precision, focus, stacking order, themes and reduced motion.
+- The first migration covers the former `Transactions.module.css` consumers and generic Transaction/Wallet operations such as `add`, `create` and `edit`. Later migrations must apply the same rules while preserving public behavior, money precision, focus, stacking order, themes and reduced motion.
 - Before completion, check file pairing, CSS ownership, class names, function semantics and dependency direction. After code changes, run checks appropriate to the affected behavior. Documentation-only changes do not require application tests.
 - These rules are currently enforced through repository instructions and code review. Automated lint checks are a separate implementation task, and syntax checks alone cannot establish whether a name accurately describes its behavior.

@@ -21,7 +21,7 @@ export type TransactionTotals = {
 };
 export type RemovedTransaction = { item: Transaction; index: number };
 
-export const isTransaction = (value: unknown): value is Transaction =>
+export const transactionValidate = (value: unknown): value is Transaction =>
   typeof value === "object" &&
   value !== null &&
   "id" in value &&
@@ -37,36 +37,40 @@ export const isTransaction = (value: unknown): value is Transaction =>
   (value.type === "income" ||
     value.type === "expense" ||
     value.type === "saving");
-export const calculateTotals = (items: Transaction[]): TransactionTotals => {
+export const transactionTotalsCalculate = (
+  items: Transaction[],
+): TransactionTotals => {
   const totals = items.reduce(
     (sum, item) => ((sum[item.type] += item.amount), sum),
     { income: 0, expense: 0, saving: 0 },
   );
   return { ...totals, balance: totals.income - totals.expense - totals.saving };
 };
-export const amountOverBalance = (amount: number, balance: number) =>
-  Math.max(0, amount - balance);
-export const canRemoveTransaction = (
+export const transactionAmountOverBalanceCalculate = (
+  amount: number,
+  balance: number,
+) => Math.max(0, amount - balance);
+export const transactionRemoveValidate = (
   items: Transaction[],
   id: Transaction["id"],
 ) => {
-  const item = items.find((candidate) => candidate.id === id);
-  if (!item || item.type !== "income") return true;
-  return calculateTotals(items).balance - item.amount >= 0;
+  const transaction = items.find((candidate) => candidate.id === id);
+  if (!transaction || transaction.type !== "income") return true;
+  return transactionTotalsCalculate(items).balance - transaction.amount >= 0;
 };
-export const filterTransactions = (
+export const transactionFilterApply = (
   items: Transaction[],
   filter: "all" | TransactionType,
 ) => (filter === "all" ? items : items.filter((item) => item.type === filter));
 
-export const sortTransactionsNewestFirst = (items: Transaction[]) =>
+export const transactionNewestFirstSort = (items: Transaction[]) =>
   [...items].sort(
     (a, b) =>
       Date.parse(b.createdAt ?? "") - Date.parse(a.createdAt ?? "") ||
       String(b.id).localeCompare(String(a.id), undefined, { numeric: true }),
   );
 
-export const formatTransactionDate = (createdAt: string, now = new Date()) => {
+export const transactionDateFormat = (createdAt: string, now = new Date()) => {
   const date = new Date(createdAt);
   const start = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   const target = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
@@ -80,7 +84,7 @@ export const formatTransactionDate = (createdAt: string, now = new Date()) => {
   }).format(date);
 };
 
-export const paginateTransactions = (
+export const transactionPageCalculate = (
   items: Transaction[],
   page: number,
   pageSize = 10,
@@ -93,7 +97,7 @@ export const paginateTransactions = (
     totalPages,
   };
 };
-export const removeTransaction = (
+export const transactionRemove = (
   items: Transaction[],
   id: Transaction["id"],
 ): { transactions: Transaction[]; removed: RemovedTransaction | null } => {
@@ -105,11 +109,15 @@ export const removeTransaction = (
         removed: { item: items[index], index },
       };
 };
-export const restoreTransaction = (
+export const transactionRestore = (
   items: Transaction[],
   removed: RemovedTransaction,
 ) => {
-  const next = [...items];
-  next.splice(Math.min(removed.index, next.length), 0, removed.item);
-  return next;
+  const nextTransactions = [...items];
+  nextTransactions.splice(
+    Math.min(removed.index, nextTransactions.length),
+    0,
+    removed.item,
+  );
+  return nextTransactions;
 };

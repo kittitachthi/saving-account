@@ -1,2 +1,2 @@
 export { useWallet } from "./useWallet";
-export { presentWallet } from "./presentation";
+export { walletSnapshotPresent } from "./presentation";

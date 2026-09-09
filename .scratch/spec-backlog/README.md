@@ -1,6 +1,6 @@
 # Spec implementation backlog
 
-Approved breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, and user-approved 13–14 on 2026-09-09: 13/27 total. Ticket 09 and 15–27 remain for subsequent batches; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
+Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, and user-approved 13–14 on 2026-09-09: 13/27 product tickets complete. Standards-migration tickets 28–31 were approved and completed on 2026-09-09 before continuing product work. Ticket 09 and 15–27 remain for subsequent batches; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
 
 Local tracking follows the existing repository convention; no external issues were published. Run `/setup-matt-pocock-skills` to configure an external tracker.
 
@@ -41,3 +41,7 @@ Verification for 01–05: 121 tests passed (35 API, 86 web), repository typechec
 25. [ล้าง Waitlist ที่ครบอายุ 180 วัน](issues/25-waitlist-retention.md) — deferred
 26. [กำหนดและเปิดช่องทางถอนคำขอ Waitlist](issues/26-waitlist-withdrawal.md) — deferred
 27. [เตรียมกระบวนการ Beta Data Reset](issues/27-beta-data-reset.md) — deferred
+28. [แยก CSS Module ตาม Transaction component](issues/28-transaction-component-styles.md) — complete
+29. [ปรับชื่อ Transaction และ Wallet functions ฝั่ง web](issues/29-web-transaction-wallet-naming.md) — complete
+30. [ปรับชื่อ Wallet functions ฝั่ง API](issues/30-api-wallet-naming.md) — complete
+31. [ตรวจและปิดงานย้ายมาตรฐานรอบแรก](issues/31-standards-migration-verification.md) — complete

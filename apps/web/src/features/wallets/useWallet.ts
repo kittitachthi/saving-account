@@ -27,7 +27,7 @@ export function useWallet(
   const retry = useRef<{ fingerprint: string; operationId: string } | null>(
     null,
   );
-  const accessError = useCallback(
+  const walletAccessErrorHandle = useCallback(
     (error: unknown) => {
       if (!(error instanceof ApiError)) return false;
       if (error.status === 401) {
@@ -49,7 +49,7 @@ export function useWallet(
     },
     [onSessionEnded, onPrivacyRequired],
   );
-  const reload = useCallback(async () => {
+  const walletSnapshotReload = useCallback(async () => {
     request.current?.abort();
     const controller = new AbortController();
     request.current = controller;
@@ -64,48 +64,55 @@ export function useWallet(
         setError("");
       }
     } catch (error) {
-      if (alive.current && !controller.signal.aborted && !accessError(error))
+      if (
+        alive.current &&
+        !controller.signal.aborted &&
+        !walletAccessErrorHandle(error)
+      )
         setError("โหลดข้อมูลล่าสุดไม่สำเร็จ กรุณาลองอีกครั้ง");
     }
-  }, [walletId, filter, page, accessError]);
-  const latestReload = useRef(reload);
+  }, [walletId, filter, page, walletAccessErrorHandle]);
+  const latestWalletSnapshotReload = useRef(walletSnapshotReload);
   useEffect(() => {
-    latestReload.current = reload;
-  }, [reload]);
+    latestWalletSnapshotReload.current = walletSnapshotReload;
+  }, [walletSnapshotReload]);
   useEffect(() => {
     alive.current = true;
     let active = true;
     queueMicrotask(() => {
-      if (active) void reload();
+      if (active) void walletSnapshotReload();
     });
-    const refresh = () => {
+    const walletSnapshotAutoRefresh = () => {
       if (document.visibilityState === "visible" && !mutation.current)
-        void reload();
+        void walletSnapshotReload();
     };
-    const interval = setInterval(refresh, 30000);
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", refresh);
+    const interval = setInterval(walletSnapshotAutoRefresh, 30000);
+    window.addEventListener("focus", walletSnapshotAutoRefresh);
+    document.addEventListener("visibilitychange", walletSnapshotAutoRefresh);
     return () => {
       active = false;
       alive.current = false;
       request.current?.abort();
       clearInterval(interval);
-      window.removeEventListener("focus", refresh);
-      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", walletSnapshotAutoRefresh);
+      document.removeEventListener(
+        "visibilitychange",
+        walletSnapshotAutoRefresh,
+      );
     };
-  }, [reload]);
+  }, [walletSnapshotReload]);
   useEffect(() => {
     if (!snapshot) return;
     const timer = setTimeout(
       () => {
-        if (!mutation.current) void reload();
+        if (!mutation.current) void walletSnapshotReload();
       },
       Math.max(1000, Date.parse(snapshot.nextDayAt) - Date.now() + 50),
     );
     return () => clearTimeout(timer);
-  }, [snapshot, reload]);
+  }, [snapshot, walletSnapshotReload]);
 
-  const write = async (
+  const walletMutationRequest = async (
     path: string,
     method: string,
     body: unknown,
@@ -124,29 +131,31 @@ export function useWallet(
         },
       );
       if (alive.current) {
-        if (refresh === "wait") await latestReload.current();
-        else void latestReload.current();
+        if (refresh === "wait") await latestWalletSnapshotReload.current();
+        else void latestWalletSnapshotReload.current();
       }
       return response;
     } catch (error) {
       if (
         alive.current &&
-        !accessError(error) &&
+        !walletAccessErrorHandle(error) &&
         error instanceof ApiError &&
         error.code === "TRANSACTION_CHANGED"
       )
-        await latestReload.current();
+        await latestWalletSnapshotReload.current();
       throw error;
     } finally {
       mutation.current = false;
       if (alive.current) setBusy(false);
     }
   };
-  const add = async (input: Omit<CreateWalletTransaction, "operationId">) => {
+  const transactionCreate = async (
+    input: Omit<CreateWalletTransaction, "operationId">,
+  ) => {
     const fingerprint = JSON.stringify(input);
     if (retry.current?.fingerprint !== fingerprint)
       retry.current = { fingerprint, operationId: crypto.randomUUID() };
-    await write("transactions", "POST", {
+    await walletMutationRequest("transactions", "POST", {
       ...input,
       operationId: retry.current.operationId,
     });
@@ -156,21 +165,21 @@ export function useWallet(
     snapshot,
     error,
     busy,
-    reload,
+    walletSnapshotReload,
     filter,
     page,
-    setPage,
-    setFilter: (value: typeof filter) => {
+    transactionPageChange: setPage,
+    transactionFilterChange: (value: typeof filter) => {
       setFilterState(value);
       setPage(1);
     },
-    add,
-    edit: async (id: string, input: EditWalletTransaction) => {
-      await write(`transactions/${id}`, "PATCH", input);
+    transactionCreate,
+    transactionUpdate: async (id: string, input: EditWalletTransaction) => {
+      await walletMutationRequest(`transactions/${id}`, "PATCH", input);
     },
-    remove: async (id: string, input: DeleteWalletTransaction) => {
+    transactionDelete: async (id: string, input: DeleteWalletTransaction) => {
       const started = performance.now();
-      const response = await write(
+      const response = await walletMutationRequest(
         `transactions/${id}`,
         "DELETE",
         input,
@@ -188,11 +197,13 @@ export function useWallet(
         ),
       };
     },
-    restore: async (id: string, operationId: string) => {
-      await write(`transactions/${id}/restore`, "POST", { operationId });
+    transactionRestore: async (id: string, operationId: string) => {
+      await walletMutationRequest(`transactions/${id}/restore`, "POST", {
+        operationId,
+      });
     },
-    setGoal: async (amount: number) => {
-      await write("savings-goal", "PUT", { amount });
+    savingsGoalUpdate: async (amount: number) => {
+      await walletMutationRequest("savings-goal", "PUT", { amount });
     },
   };
 }

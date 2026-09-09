@@ -14,7 +14,7 @@ import {
 } from "./features/beta-waitlist/beta-waitlist.service.js";
 import { createNotificationWorker } from "./features/notifications/notification-worker.js";
 import { createSmtpEmailTransport } from "./features/notifications/smtp-email-transport.js";
-import { registerWalletRoutes } from "./features/wallets/wallet.routes.js";
+import { walletRoutesRegister } from "./features/wallets/wallet.routes.js";
 import { WalletRepository } from "./features/wallets/wallet.repository.js";
 import { privacyNotice } from "./features/privacy/privacy-notice.js";
 
@@ -52,7 +52,7 @@ const app = createApp({
       secureCookies: config.nodeEnv === "production",
     });
     registerBetaWaitlistRoutes(app, betaWaitlist);
-    registerWalletRoutes(
+    walletRoutesRegister(
       app,
       auth,
       new WalletRepository(database.client, privacyNotice.version),

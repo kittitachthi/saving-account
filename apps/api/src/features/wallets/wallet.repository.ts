@@ -7,7 +7,10 @@ import type {
   WalletSnapshot,
   WalletTransaction,
 } from "@saving-account/contracts";
-import { sortWalletTransactions, summarizeWallet } from "./wallet-domain.js";
+import {
+  walletTransactionSort,
+  walletSnapshotSummarize,
+} from "./wallet-domain.js";
 
 export class WalletAccessError extends Error {
   constructor(
@@ -24,7 +27,7 @@ export class WalletAccessError extends Error {
   }
 }
 
-function toTransaction(row: {
+function walletTransactionResponseMap(row: {
   id: string;
   title: string;
   category: string;
@@ -54,12 +57,12 @@ export class WalletRepository {
     private readonly noticeVersion: string,
   ) {}
 
-  async acceptance(userId: string) {
+  async privacyAcceptanceCheck(userId: string) {
     return !!(await this.client.privacyAcceptance.findUnique({
       where: { userId_version: { userId, version: this.noticeVersion } },
     }));
   }
-  async accept(userId: string) {
+  async privacyAcceptanceRecord(userId: string) {
     await this.client.privacyAcceptance.upsert({
       where: { userId_version: { userId, version: this.noticeVersion } },
       create: { userId, version: this.noticeVersion },
@@ -67,7 +70,7 @@ export class WalletRepository {
     });
   }
 
-  private async authorize(
+  private async walletOwnerAuthorize(
     tx: Prisma.TransactionClient,
     userId: string,
     walletId: string,
@@ -90,7 +93,7 @@ export class WalletRepository {
     return membership.wallet;
   }
 
-  async snapshot(
+  async walletSnapshotRead(
     userId: string,
     walletId: string,
     filter: string,
@@ -99,13 +102,13 @@ export class WalletRepository {
   ): Promise<WalletSnapshot> {
     return this.client.$transaction(
       async (tx) => {
-        const wallet = await this.authorize(tx, userId, walletId);
-        const items = sortWalletTransactions(
+        const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);
+        const items = walletTransactionSort(
           (
             await tx.walletTransaction.findMany({
               where: { walletId, deletedAt: null },
             })
-          ).map(toTransaction),
+          ).map(walletTransactionResponseMap),
         );
         const goal = await tx.savingsGoal.findUnique({ where: { walletId } });
         const filtered =
@@ -120,7 +123,7 @@ export class WalletRepository {
             name: wallet.name,
             timezone: wallet.timezone,
           },
-          ...summarizeWallet(items, now),
+          ...walletSnapshotSummarize(items, now),
           goal: goal ? Number(goal.amount) : null,
           transactions: filtered.slice(
             (currentPage - 1) * 10,
@@ -134,7 +137,7 @@ export class WalletRepository {
     );
   }
 
-  async create(
+  async walletTransactionCreate(
     userId: string,
     walletId: string,
     input: CreateWalletTransaction,
@@ -142,7 +145,7 @@ export class WalletRepository {
     return this.client.$transaction(async (tx) => {
       // Serialize balance checks and all money writes for this Wallet, including other devices.
       await tx.$queryRaw`SELECT "id" FROM "Wallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`;
-      await this.authorize(tx, userId, walletId);
+      await this.walletOwnerAuthorize(tx, userId, walletId);
       const existing = await tx.walletTransaction.findUnique({
         where: {
           walletId_operationId: { walletId, operationId: input.operationId },
@@ -158,7 +161,7 @@ export class WalletRepository {
           existing.occurredTime === input.occurredTime;
         if (!same || existing.deletedAt)
           throw new WalletAccessError("OPERATION_CONFLICT");
-        return toTransaction(existing);
+        return walletTransactionResponseMap(existing);
       }
       const sums = await tx.walletTransaction.groupBy({
         by: ["type"],
@@ -176,7 +179,7 @@ export class WalletRepository {
         throw new WalletAccessError("INSUFFICIENT_BALANCE");
       if (totals[input.type] + amount > BigInt(Number.MAX_SAFE_INTEGER))
         throw new WalletAccessError("AMOUNT_LIMIT");
-      return toTransaction(
+      return walletTransactionResponseMap(
         await tx.walletTransaction.create({
           data: { ...input, walletId, amount },
         }),
@@ -184,7 +187,7 @@ export class WalletRepository {
     });
   }
 
-  private async checkReplacement(
+  private async walletTransactionReplacementValidate(
     tx: Prisma.TransactionClient,
     walletId: string,
     id: string,
@@ -212,7 +215,7 @@ export class WalletRepository {
       throw new WalletAccessError("AMOUNT_LIMIT");
   }
 
-  private async changeTransaction<T>(
+  private async walletTransactionChangeWithinLock<T>(
     userId: string,
     walletId: string,
     id: string,
@@ -223,7 +226,7 @@ export class WalletRepository {
   ) {
     return this.client.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Wallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`;
-      await this.authorize(tx, userId, walletId);
+      await this.walletOwnerAuthorize(tx, userId, walletId);
       const row = await tx.walletTransaction.findFirst({
         where: { id, walletId },
       });
@@ -232,113 +235,131 @@ export class WalletRepository {
     });
   }
 
-  async edit(
+  async walletTransactionUpdate(
     userId: string,
     walletId: string,
     id: string,
     input: EditWalletTransaction,
     now = () => new Date(),
   ) {
-    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
-      if (
-        row.deletedAt ||
-        row.updatedAt.toISOString() !== input.expectedUpdatedAt
-      )
-        throw new WalletAccessError("TRANSACTION_CHANGED");
-      const { expectedUpdatedAt: _version, ...fields } = input;
-      const amount = BigInt(fields.amount);
-      await this.checkReplacement(tx, walletId, id, { type: row.type, amount });
-      return toTransaction(
-        await tx.walletTransaction.update({
-          where: { id },
-          data: {
-            ...fields,
-            amount,
-            updatedAt: new Date(
-              Math.max(now().getTime(), row.updatedAt.getTime() + 1),
-            ),
-          },
-        }),
-      );
-    });
+    return this.walletTransactionChangeWithinLock(
+      userId,
+      walletId,
+      id,
+      async (tx, row) => {
+        if (
+          row.deletedAt ||
+          row.updatedAt.toISOString() !== input.expectedUpdatedAt
+        )
+          throw new WalletAccessError("TRANSACTION_CHANGED");
+        const { expectedUpdatedAt: _version, ...fields } = input;
+        const amount = BigInt(fields.amount);
+        await this.walletTransactionReplacementValidate(tx, walletId, id, {
+          type: row.type,
+          amount,
+        });
+        return walletTransactionResponseMap(
+          await tx.walletTransaction.update({
+            where: { id },
+            data: {
+              ...fields,
+              amount,
+              updatedAt: new Date(
+                Math.max(now().getTime(), row.updatedAt.getTime() + 1),
+              ),
+            },
+          }),
+        );
+      },
+    );
   }
 
-  async remove(
+  async walletTransactionDelete(
     userId: string,
     walletId: string,
     id: string,
     input: DeleteWalletTransaction,
     now = () => new Date(),
   ): Promise<WalletUndoReceipt> {
-    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
-      if (row.deleteOperationId === input.operationId && row.deletedAt) {
+    return this.walletTransactionChangeWithinLock(
+      userId,
+      walletId,
+      id,
+      async (tx, row) => {
+        if (row.deleteOperationId === input.operationId && row.deletedAt) {
+          return {
+            operationId: input.operationId,
+            undoUntil: new Date(row.deletedAt.getTime() + 5000).toISOString(),
+            serverTime: now().toISOString(),
+          };
+        }
+        if (
+          row.deletedAt ||
+          row.updatedAt.toISOString() !== input.expectedUpdatedAt ||
+          row.deleteOperationId === input.operationId
+        )
+          throw new WalletAccessError("TRANSACTION_CHANGED");
+        await this.walletTransactionReplacementValidate(tx, walletId, id);
+        const deletedAt = now();
+        await tx.walletTransaction.update({
+          where: { id },
+          data: {
+            deletedAt,
+            deleteOperationId: input.operationId,
+            updatedAt: new Date(
+              Math.max(deletedAt.getTime(), row.updatedAt.getTime() + 1),
+            ),
+          },
+        });
         return {
           operationId: input.operationId,
-          undoUntil: new Date(row.deletedAt.getTime() + 5000).toISOString(),
+          undoUntil: new Date(deletedAt.getTime() + 5000).toISOString(),
           serverTime: now().toISOString(),
         };
-      }
-      if (
-        row.deletedAt ||
-        row.updatedAt.toISOString() !== input.expectedUpdatedAt ||
-        row.deleteOperationId === input.operationId
-      )
-        throw new WalletAccessError("TRANSACTION_CHANGED");
-      await this.checkReplacement(tx, walletId, id);
-      const deletedAt = now();
-      await tx.walletTransaction.update({
-        where: { id },
-        data: {
-          deletedAt,
-          deleteOperationId: input.operationId,
-          updatedAt: new Date(
-            Math.max(deletedAt.getTime(), row.updatedAt.getTime() + 1),
-          ),
-        },
-      });
-      return {
-        operationId: input.operationId,
-        undoUntil: new Date(deletedAt.getTime() + 5000).toISOString(),
-        serverTime: now().toISOString(),
-      };
-    });
+      },
+    );
   }
 
-  async restore(
+  async walletTransactionRestore(
     userId: string,
     walletId: string,
     id: string,
     operationId: string,
     now = () => new Date(),
   ) {
-    return this.changeTransaction(userId, walletId, id, async (tx, row) => {
-      if (row.deleteOperationId !== operationId)
-        throw new WalletAccessError("TRANSACTION_CHANGED");
-      // A retried successful Undo must not apply money twice or overwrite later edits.
-      if (!row.deletedAt) return;
-      if (now().getTime() >= row.deletedAt.getTime() + 5000)
-        throw new WalletAccessError("UNDO_EXPIRED");
-      await this.checkReplacement(tx, walletId, id, row);
-      // Validate again after database work, while still holding the Wallet lock.
-      const restoredAt = now();
-      if (restoredAt.getTime() >= row.deletedAt.getTime() + 5000)
-        throw new WalletAccessError("UNDO_EXPIRED");
-      await tx.walletTransaction.update({
-        where: { id },
-        data: {
-          deletedAt: null,
-          updatedAt: new Date(
-            Math.max(restoredAt.getTime(), row.updatedAt.getTime() + 1),
-          ),
-        },
-      });
-    });
+    return this.walletTransactionChangeWithinLock(
+      userId,
+      walletId,
+      id,
+      async (tx, row) => {
+        if (row.deleteOperationId !== operationId)
+          throw new WalletAccessError("TRANSACTION_CHANGED");
+        // A retried successful Undo must not apply money twice or overwrite later edits.
+        if (!row.deletedAt) return;
+        if (now().getTime() >= row.deletedAt.getTime() + 5000)
+          throw new WalletAccessError("UNDO_EXPIRED");
+        await this.walletTransactionReplacementValidate(tx, walletId, id, row);
+        // Validate again after database work, while still holding the Wallet lock.
+        const restoredAt = now();
+        if (restoredAt.getTime() >= row.deletedAt.getTime() + 5000)
+          throw new WalletAccessError("UNDO_EXPIRED");
+        await tx.walletTransaction.update({
+          where: { id },
+          data: {
+            deletedAt: null,
+            updatedAt: new Date(
+              Math.max(restoredAt.getTime(), row.updatedAt.getTime() + 1),
+            ),
+          },
+        });
+      },
+    );
   }
 
-  async setGoal(userId: string, walletId: string, amount: number) {
+  async savingsGoalUpdate(userId: string, walletId: string, amount: number) {
     await this.client.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "Wallet" WHERE "id" = ${walletId}::uuid FOR UPDATE`;
-      await this.authorize(tx, userId, walletId);
+      await this.walletOwnerAuthorize(tx, userId, walletId);
       await tx.savingsGoal.upsert({
         where: { walletId },
         create: { walletId, amount: BigInt(amount) },

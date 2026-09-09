@@ -4,20 +4,22 @@ import type {
 } from "@saving-account/contracts";
 import type { Transaction } from "../transactions";
 
-export const presentTransaction = (item: WalletTransaction): Transaction => ({
+export const walletTransactionPresent = (
+  item: WalletTransaction,
+): Transaction => ({
   ...item,
   amountSatang: item.amount,
   date: item.occurredOn,
   icon: item.type === "income" ? "฿" : item.type === "saving" ? "◇" : "•",
 });
 
-export function presentWallet(snapshot: WalletSnapshot) {
+export function walletSnapshotPresent(snapshot: WalletSnapshot) {
   const { totals, goal } = snapshot;
   const dailyTotal = snapshot.daily.reduce((sum, item) => sum + item.total, 0);
   let expenseOffset = 0,
     savingsOffset = 0;
   return {
-    transactions: snapshot.transactions.map(presentTransaction),
+    transactions: snapshot.transactions.map(walletTransactionPresent),
     // Money remains integer satang until formatted at the display/input boundary.
     totals,
     goal,
@@ -25,7 +27,7 @@ export function presentWallet(snapshot: WalletSnapshot) {
     daily: snapshot.daily.map((item) => ({
       ...item,
       percentage: dailyTotal ? (item.total / dailyTotal) * 100 : 0,
-      highest: item.highest.map(presentTransaction),
+      highest: item.highest.map(walletTransactionPresent),
     })),
     expenseCategories: snapshot.expenseCategories.map((item) => {
       const percentage = snapshot.monthly.expense

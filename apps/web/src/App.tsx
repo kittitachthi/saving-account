@@ -18,7 +18,7 @@ import {
   TransactionForm,
   TransactionPanel,
   UndoToast,
-  useTransactions,
+  useTransactionCollection,
 } from "./features/transactions";
 
 type AppProps = {
@@ -46,7 +46,7 @@ export default function App({
     [logoutError, setLogoutError] = useState<string | null>(null);
   const restoreLogoutFocus = useRef<() => void>(() => undefined);
   const { theme, toggleTheme } = useTheme();
-  const transactions = useTransactions(seedTransactions);
+  const transactions = useTransactionCollection(seedTransactions);
   const mascot = useDashboardMascot();
   const savings = useSavingsGoal();
   return (
@@ -64,8 +64,8 @@ export default function App({
       <FinancialOverview
         displayName={user.displayName}
         hasGoal={!!savings.goal}
-        onSetGoal={() => setGoalOpen(true)}
-        onAdd={() => setEntryOpen(true)}
+        onSavingsGoalEditRequest={() => setGoalOpen(true)}
+        onTransactionCreateRequest={() => setEntryOpen(true)}
         summary={
           <DashboardSummary
             totals={transactions.totals}
@@ -79,11 +79,11 @@ export default function App({
           transactions={transactions.transactions}
           filter={transactions.filter}
           newItemId={transactions.newItemId}
-          onFilter={transactions.setFilter}
-          onRequestDelete={transactions.setPendingDelete}
+          onTransactionFilterChange={transactions.transactionFilterChange}
+          onTransactionDeleteRequest={transactions.transactionDeleteRequest}
           page={transactions.page}
           now={transactions.now}
-          onPage={transactions.setPage}
+          onTransactionPageChange={transactions.transactionPageChange}
         />
         <CategoryChart
           transactions={transactions.transactions}
@@ -98,11 +98,11 @@ export default function App({
       </FinancialOverview>
       {entryOpen && (
         <TransactionForm
-          onClose={() => setEntryOpen(false)}
-          onAdd={(item) => {
-            const saved = transactions.addTransaction(item);
-            mascot.reactToResult(saved ? item.type : "error");
-            return saved;
+          onTransactionFormClose={() => setEntryOpen(false)}
+          onTransactionSubmit={(item) => {
+            const transactionSaved = transactions.transactionCreate(item);
+            mascot.reactToResult(transactionSaved ? item.type : "error");
+            return transactionSaved;
           }}
           availableBalance={transactions.totals.balance}
         />
@@ -124,12 +124,18 @@ export default function App({
       {transactions.pendingDelete && (
         <DeleteConfirmation
           transaction={transactions.pendingDelete}
-          onCancel={() => transactions.setPendingDelete(null)}
-          onConfirm={transactions.confirmDelete}
+          onTransactionDeleteCancel={() =>
+            transactions.transactionDeleteRequest(null)
+          }
+          onTransactionDeleteConfirm={transactions.transactionDeleteConfirm}
           error={transactions.deleteError}
         />
       )}
-      {transactions.removed && <UndoToast onUndo={transactions.undoDelete} />}
+      {transactions.removed && (
+        <UndoToast
+          onTransactionDeleteUndo={transactions.transactionDeleteUndo}
+        />
+      )}
       {logoutOpen && (
         <LogoutConfirmation
           pending={logoutPending}

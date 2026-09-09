@@ -11,7 +11,7 @@ import { AuthService } from "../auth/auth.service.js";
 import { PrismaAuthRepository } from "../auth/prisma-auth.repository.js";
 import { registerAuthRoutes } from "../auth/auth.routes.js";
 import { privacyNotice } from "../privacy/privacy-notice.js";
-import { registerWalletRoutes } from "./wallet.routes.js";
+import { walletRoutesRegister } from "./wallet.routes.js";
 import { WalletRepository } from "./wallet.repository.js";
 
 loadEnvironment({ path: new URL("../../../../../.env", import.meta.url) });
@@ -24,8 +24,12 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
   const ids: string[] = [];
   const cookies: string[] = [];
   const wallets: string[] = [];
-  const path = () => `/api/wallets/${wallets[0]}`;
-  const input = (type = "income", amount = 10000, extra = {}) => ({
+  const walletPathBuild = () => `/api/wallets/${wallets[0]}`;
+  const walletTransactionRequestBodyBuild = (
+    type = "income",
+    amount = 10000,
+    extra = {},
+  ) => ({
     operationId: randomUUID(),
     title: "รายการทดสอบ",
     category: "อาหาร",
@@ -77,7 +81,7 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       },
       () => now,
     );
-    const compose = (version: string) =>
+    const walletTestApplicationCompose = (version: string) =>
       createApp({
         checkDatabase: () => db.checkConnection(),
         registerRoutes: (application) => {
@@ -86,7 +90,7 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
             googleRedirectUri: `${trusted.Origin}/api/auth/google/callback`,
             secureCookies: false,
           });
-          registerWalletRoutes(
+          walletRoutesRegister(
             application,
             auth,
             new WalletRepository(db.client, version),
@@ -96,8 +100,8 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
           );
         },
       });
-    app = compose(privacyNotice.version);
-    changedNoticeApp = compose("2026-09-09");
+    app = walletTestApplicationCompose(privacyNotice.version);
+    changedNoticeApp = walletTestApplicationCompose("2026-09-09");
   });
   afterAll(async () => {
     await db.client.user.deleteMany({ where: { id: { in: ids } } });
@@ -105,22 +109,25 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
   });
 
   it("gates finances until current consent, records consent once and re-gates material changes", async () => {
-    await request(app).get(path()).expect(401);
+    await request(app).get(walletPathBuild()).expect(401);
     const notice = await request(app)
       .get("/api/privacy")
       .set("Cookie", cookies[0])
       .expect(200);
     expect(notice.body.accepted).toBe(false);
     expect(notice.body.paragraphs.length).toBeGreaterThan(0);
-    await request(app).get(path()).set("Cookie", cookies[0]).expect(403);
     await request(app)
-      .post(`${path()}/transactions`)
-      .set(trusted)
+      .get(walletPathBuild())
       .set("Cookie", cookies[0])
-      .send(input())
       .expect(403);
     await request(app)
-      .put(`${path()}/savings-goal`)
+      .post(`${walletPathBuild()}/transactions`)
+      .set(trusted)
+      .set("Cookie", cookies[0])
+      .send(walletTransactionRequestBodyBuild())
+      .expect(403);
+    await request(app)
+      .put(`${walletPathBuild()}/savings-goal`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send({ amount: 100 })
@@ -160,7 +167,7 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       await db.client.privacyAcceptance.findMany({ where: { userId: ids[0] } }),
     ).toEqual(acceptance);
     const denied = await request(changedNoticeApp)
-      .get(path())
+      .get(walletPathBuild())
       .set("Cookie", cookies[0])
       .expect(403);
     expect(denied.body.error.code).toBe("PRIVACY_REQUIRED");
@@ -172,7 +179,7 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       ).body.accepted,
     ).toBe(false);
     const empty = await request(app)
-      .get(path())
+      .get(walletPathBuild())
       .set("Cookie", cookies[0])
       .expect(200);
     expect(empty.body.transactions).toEqual([]);
@@ -185,15 +192,18 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       data: { walletId: wallets[0], userId: ids[1], role: "VIEWER" },
     });
     for (const cookie of [cookies[1], cookies[2]]) {
-      await request(app).get(path()).set("Cookie", cookie).expect(403);
       await request(app)
-        .post(`${path()}/transactions`)
-        .set(trusted)
+        .get(walletPathBuild())
         .set("Cookie", cookie)
-        .send(input())
         .expect(403);
       await request(app)
-        .put(`${path()}/savings-goal`)
+        .post(`${walletPathBuild()}/transactions`)
+        .set(trusted)
+        .set("Cookie", cookie)
+        .send(walletTransactionRequestBodyBuild())
+        .expect(403);
+      await request(app)
+        .put(`${walletPathBuild()}/savings-goal`)
         .set(trusted)
         .set("Cookie", cookie)
         .send({ amount: 100 })
@@ -210,11 +220,11 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       .post(`/api/wallets/${extra.id}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
-      .send(input())
+      .send(walletTransactionRequestBodyBuild())
       .expect(201);
     expect(
-      (await request(app).get(path()).set("Cookie", cookies[0])).body.totals
-        .income,
+      (await request(app).get(walletPathBuild()).set("Cookie", cookies[0])).body
+        .totals.income,
     ).toBe(0);
     await db.client.walletMembership.delete({
       where: { walletId_userId: { walletId: extra.id, userId: ids[0] } },
@@ -237,78 +247,87 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       { createdAt: now.toISOString() },
     ]) {
       await request(app)
-        .post(`${path()}/transactions`)
+        .post(`${walletPathBuild()}/transactions`)
         .set(trusted)
         .set("Cookie", cookies[0])
-        .send(input("income", 100, extra))
+        .send(walletTransactionRequestBodyBuild("income", 100, extra))
         .expect(400);
     }
     await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set("Cookie", cookies[0])
-      .send(input())
+      .send(walletTransactionRequestBodyBuild())
       .expect(403);
     await request(app)
-      .put(`${path()}/savings-goal`)
+      .put(`${walletPathBuild()}/savings-goal`)
       .set("Cookie", cookies[0])
       .send({ amount: 100 })
       .expect(403);
     await request(app)
-      .get(`${path()}?page=-1`)
+      .get(`${walletPathBuild()}?page=-1`)
       .set("Cookie", cookies[0])
       .expect(400);
   });
 
   it("persists exact totals, deterministic pages, nullable time and shared savings goals across sessions", async () => {
-    const original = input("income", 10000, { occurredOn: "2026-08-31" });
+    const original = walletTransactionRequestBodyBuild("income", 10000, {
+      occurredOn: "2026-08-31",
+    });
     const created = await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send(original)
       .expect(201);
     const duplicate = await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send(original)
       .expect(201);
     expect(duplicate.body).toEqual(created.body);
     await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send({ ...original, amount: 1 })
       .expect(409);
     for (let i = 0; i < 11; i++)
       await request(app)
-        .post(`${path()}/transactions`)
+        .post(`${walletPathBuild()}/transactions`)
         .set(trusted)
         .set("Cookie", cookies[0])
         .send(
-          input("income", 1, { title: `small-${i}`, occurredTime: "09:00" }),
+          walletTransactionRequestBodyBuild("income", 1, {
+            title: `small-${i}`,
+            occurredTime: "09:00",
+          }),
         )
         .expect(201);
     await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
-      .send(input("expense", 11))
+      .send(walletTransactionRequestBodyBuild("expense", 11))
       .expect(201);
     await request(app)
-      .post(`${path()}/transactions`)
+      .post(`${walletPathBuild()}/transactions`)
       .set(trusted)
       .set("Cookie", cookies[0])
-      .send(input("saving", 1000, { category: "ท่องเที่ยว" }))
+      .send(
+        walletTransactionRequestBodyBuild("saving", 1000, {
+          category: "ท่องเที่ยว",
+        }),
+      )
       .expect(201);
     await request(app)
-      .put(`${path()}/savings-goal`)
+      .put(`${walletPathBuild()}/savings-goal`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send({ amount: 3000 })
       .expect(204);
     await request(app)
-      .put(`${path()}/savings-goal`)
+      .put(`${walletPathBuild()}/savings-goal`)
       .set(trusted)
       .set("Cookie", cookies[0])
       .send({ amount: 2000 })
@@ -322,64 +341,74 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       },
     });
     const otherDevice = `saving_account_session=${token}`;
-    const snapshot = (
-      await request(app).get(path()).set("Cookie", otherDevice).expect(200)
+    const walletSnapshot = (
+      await request(app)
+        .get(walletPathBuild())
+        .set("Cookie", otherDevice)
+        .expect(200)
     ).body;
-    expect(snapshot.totals).toEqual({
+    expect(walletSnapshot.totals).toEqual({
       income: 10011,
       expense: 11,
       saving: 1000,
       balance: 9000,
     });
-    expect(snapshot.monthly).toEqual({ income: 11, expense: 11 });
-    expect(snapshot.today).toBe("2026-09-01");
-    expect(snapshot.goal).toBe(2000);
-    expect(snapshot.savingsCategories).toEqual([
+    expect(walletSnapshot.monthly).toEqual({ income: 11, expense: 11 });
+    expect(walletSnapshot.today).toBe("2026-09-01");
+    expect(walletSnapshot.goal).toBe(2000);
+    expect(walletSnapshot.savingsCategories).toEqual([
       { name: "ท่องเที่ยว", total: 1000, count: 1, average: 1000 },
     ]);
-    expect(snapshot.transactions).toHaveLength(10);
-    expect(snapshot.totalPages).toBe(2);
+    expect(walletSnapshot.transactions).toHaveLength(10);
+    expect(walletSnapshot.totalPages).toBe(2);
     const second = (
-      await request(app).get(`${path()}?page=2`).set("Cookie", otherDevice)
+      await request(app)
+        .get(`${walletPathBuild()}?page=2`)
+        .set("Cookie", otherDevice)
     ).body;
     expect(second.transactions).toHaveLength(4);
     expect(
       new Set(
-        [...snapshot.transactions, ...second.transactions].map((x) => x.id),
+        [...walletSnapshot.transactions, ...second.transactions].map(
+          (x) => x.id,
+        ),
       ).size,
     ).toBe(14);
     const saving = (
       await request(app)
-        .get(`${path()}?filter=saving`)
+        .get(`${walletPathBuild()}?filter=saving`)
         .set("Cookie", otherDevice)
     ).body;
     expect(saving.transactions[0].occurredTime).toBeNull();
     expect(saving.transactions[0].createdAt).toEqual(expect.any(String));
-    expect(saving.totals).toEqual(snapshot.totals);
+    expect(saving.totals).toEqual(walletSnapshot.totals);
     await request(app)
       .post("/api/auth/logout")
       .set(trusted)
       .set("Cookie", otherDevice)
       .expect(204);
-    await request(app).get(path()).set("Cookie", otherDevice).expect(401);
+    await request(app)
+      .get(walletPathBuild())
+      .set("Cookie", otherDevice)
+      .expect(401);
   });
 
   it("serializes concurrent expense/saving and idempotent retries without overspending", async () => {
     const outcomes = await Promise.all(
       ["expense", "saving"].map((type) =>
         request(app)
-          .post(`${path()}/transactions`)
+          .post(`${walletPathBuild()}/transactions`)
           .set(trusted)
           .set("Cookie", cookies[0])
-          .send(input(type, 6000)),
+          .send(walletTransactionRequestBodyBuild(type, 6000)),
       ),
     );
     expect(outcomes.map((x) => x.status).sort()).toEqual([201, 409]);
-    const repeated = input("income", 5);
+    const repeated = walletTransactionRequestBodyBuild("income", 5);
     const results = await Promise.all(
       [1, 2].map(() =>
         request(app)
-          .post(`${path()}/transactions`)
+          .post(`${walletPathBuild()}/transactions`)
           .set(trusted)
           .set("Cookie", cookies[0])
           .send(repeated),
@@ -388,8 +417,8 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
     expect(results.map((x) => x.status)).toEqual([201, 201]);
     expect(results[0].body.id).toBe(results[1].body.id);
     expect(
-      (await request(app).get(path()).set("Cookie", cookies[0])).body.totals
-        .balance,
+      (await request(app).get(walletPathBuild()).set("Cookie", cookies[0])).body
+        .totals.balance,
     ).toBe(3005);
   });
 });

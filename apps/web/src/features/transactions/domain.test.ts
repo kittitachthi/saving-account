@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
-  amountOverBalance,
-  calculateTotals,
-  canRemoveTransaction,
-  formatTransactionDate,
-  paginateTransactions,
-  removeTransaction,
-  restoreTransaction,
-  sortTransactionsNewestFirst,
+  transactionAmountOverBalanceCalculate,
+  transactionTotalsCalculate,
+  transactionRemoveValidate,
+  transactionDateFormat,
+  transactionPageCalculate,
+  transactionRemove,
+  transactionRestore,
+  transactionNewestFirstSort,
 } from "./domain";
 import type { Transaction } from "./domain";
 
@@ -33,7 +33,7 @@ const items: Transaction[] = [
 ];
 describe("transaction domain", () => {
   it("คำนวณยอดจาก Transaction source of truth", () =>
-    expect(calculateTotals(items)).toEqual({
+    expect(transactionTotalsCalculate(items)).toEqual({
       income: 100,
       expense: 25,
       saving: 0,
@@ -41,7 +41,7 @@ describe("transaction domain", () => {
     }));
   it("หักเงินเก็บออกจากยอดพร้อมใช้", () =>
     expect(
-      calculateTotals([
+      transactionTotalsCalculate([
         ...items,
         {
           id: 3,
@@ -55,10 +55,10 @@ describe("transaction domain", () => {
       ]),
     ).toEqual({ income: 100, expense: 25, saving: 30, balance: 45 }));
   it("คำนวณส่วนที่รายการเกินยอดพร้อมใช้", () =>
-    expect(amountOverBalance(120, 75)).toBe(45));
+    expect(transactionAmountOverBalanceCalculate(120, 75)).toBe(45));
   it("ไม่ให้ลบรายรับหากยอดพร้อมใช้จะติดลบ", () =>
     expect(
-      canRemoveTransaction(
+      transactionRemoveValidate(
         [
           ...items,
           {
@@ -75,11 +75,11 @@ describe("transaction domain", () => {
       ),
     ).toBe(false));
   it("ลบและคืน Transaction ที่ตำแหน่งเดิมโดยไม่ mutate input", () => {
-    const result = removeTransaction(items, 1);
+    const result = transactionRemove(items, 1);
     expect(result.transactions.map((x) => x.id)).toEqual([2]);
     expect(items).toHaveLength(2);
     expect(
-      restoreTransaction(result.transactions, result.removed!).map((x) => x.id),
+      transactionRestore(result.transactions, result.removed!).map((x) => x.id),
     ).toEqual([1, 2]);
   });
   it("เรียงใหม่สุดอย่างคงที่และแบ่งหน้าละ 10 รายการ", () => {
@@ -88,20 +88,22 @@ describe("transaction domain", () => {
       id: index + 1,
       createdAt: new Date(2026, 8, 3, 10, 0, index).toISOString(),
     }));
-    const sorted = sortTransactionsNewestFirst(dated);
+    const sorted = transactionNewestFirstSort(dated);
     expect(sorted[0].id).toBe(11);
-    expect(paginateTransactions(sorted, 2).items.map((x) => x.id)).toEqual([1]);
+    expect(transactionPageCalculate(sorted, 2).items.map((x) => x.id)).toEqual([
+      1,
+    ]);
   });
   it("แสดงป้ายวันนี้ เมื่อวาน และวันที่ภาษาไทยจากเวลาจริง", () => {
     const now = new Date(2026, 8, 3, 12);
     expect(
-      formatTransactionDate(new Date(2026, 8, 3, 8).toISOString(), now),
+      transactionDateFormat(new Date(2026, 8, 3, 8).toISOString(), now),
     ).toBe("วันนี้");
     expect(
-      formatTransactionDate(new Date(2026, 8, 2, 8).toISOString(), now),
+      transactionDateFormat(new Date(2026, 8, 2, 8).toISOString(), now),
     ).toBe("เมื่อวาน");
     expect(
-      formatTransactionDate(new Date(2026, 7, 30, 8).toISOString(), now),
+      transactionDateFormat(new Date(2026, 7, 30, 8).toISOString(), now),
     ).toContain("30");
   });
 });

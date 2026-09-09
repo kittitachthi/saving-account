@@ -25,7 +25,7 @@ The normative examples and exceptions are in [Coding standards](CODING-STANDARDS
 - More files and longer names, with clearer ownership and more discoverable intent.
 - Prefixes are intentional team conventions, not a requirement for CSS isolation. Kebab-case requires bracket access in TypeScript.
 - Component boundaries must be preserved when splitting styles: communicate state through props/callbacks instead of reaching across private selectors.
-- Existing code, including transaction styles and generic wallet method names, remains migration debt until separately addressed. Renaming exported symbols requires updating callers and tests; internal naming changes do not imply changing HTTP or database contracts.
+- Existing code remains migration debt until separately addressed. The first bounded migration completed the transaction stylesheet split and renamed the affected Transaction/Wallet functions while preserving HTTP and database contracts. Future exported-symbol migrations must continue to update callers and tests together.
 - Documentation and review enforce these rules today. Automated filename or naming checks may be added later; semantic accuracy still requires review.
 
 ## Alternatives considered

@@ -1,18 +1,27 @@
-import styles from "./Transactions.module.css";
+import styles from "./UndoToast.module.css";
 
 export function UndoToast({
-  onUndo,
+  onTransactionDeleteUndo,
   pending = false,
   autoFocus = false,
 }: {
-  onUndo: () => void;
+  onTransactionDeleteUndo: () => void;
   pending?: boolean;
   autoFocus?: boolean;
 }) {
   return (
-    <div className={styles.undoToast} role="status" aria-label="ผลการลบรายการ">
-      <span>ลบรายการแล้ว</span>
-      <button autoFocus={autoFocus} onClick={onUndo} disabled={pending}>
+    <div
+      className={styles["transaction-undo-toast"]}
+      role="status"
+      aria-label="ผลการลบรายการ"
+    >
+      <span className={styles["transaction-undo-message"]}>ลบรายการแล้ว</span>
+      <button
+        className={styles["transaction-undo-button"]}
+        autoFocus={autoFocus}
+        onClick={onTransactionDeleteUndo}
+        disabled={pending}
+      >
         {pending ? "กำลังคืนรายการ…" : "Undo"}
       </button>
     </div>

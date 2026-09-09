@@ -9,8 +9,12 @@ import {
   type WalletRepository,
 } from "./wallet.repository.js";
 
-const money = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
-const date = z
+const moneyAmountSchema = z
+  .number()
+  .int()
+  .positive()
+  .max(Number.MAX_SAFE_INTEGER);
+const transactionOccurredOnSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
   .refine((value) => {
@@ -21,14 +25,14 @@ const date = z
       value >= "1900-01-01"
     );
   });
-const transactionInput = z
+const transactionCreateInputSchema = z
   .object({
     operationId: z.uuid(),
     title: z.string().trim().min(1).max(200),
     category: z.string().trim().min(1).max(80),
     type: z.enum(["income", "expense", "saving"]),
-    amount: money,
-    occurredOn: date,
+    amount: moneyAmountSchema,
+    occurredOn: transactionOccurredOnSchema,
     occurredTime: z
       .string()
       .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
@@ -36,7 +40,7 @@ const transactionInput = z
   })
   .strict();
 
-export function registerWalletRoutes(
+export function walletRoutesRegister(
   app: Express,
   auth: AuthService,
   repository: WalletRepository,
@@ -44,8 +48,12 @@ export function registerWalletRoutes(
   notice = privacyNotice,
   now = () => new Date(),
 ) {
-  const csrf = requireSameOriginMutation(appOrigin);
-  const authenticated: RequestHandler = async (request, response, next) => {
+  const mutationCsrfGuard = requireSameOriginMutation(appOrigin);
+  const authenticatedRequestGuard: RequestHandler = async (
+    request,
+    response,
+    next,
+  ) => {
     response.setHeader("Cache-Control", "no-store");
     const token = readSessionToken(request);
     const session = token ? await auth.authenticate(token) : null;
@@ -58,29 +66,33 @@ export function registerWalletRoutes(
     response.locals.userId = session.user.id;
     next();
   };
-  app.use(["/api/privacy", "/api/wallets"], authenticated);
+  app.use(["/api/privacy", "/api/wallets"], authenticatedRequestGuard);
   app.get("/api/privacy", async (_request, response) => {
     response.json({
       ...notice,
-      accepted: await repository.acceptance(response.locals.userId),
+      accepted: await repository.privacyAcceptanceCheck(response.locals.userId),
     });
   });
-  app.post("/api/privacy/accept", csrf, async (request, response) => {
-    if (
-      !z
-        .object({ version: z.literal(notice.version) })
-        .strict()
-        .safeParse(request.body).success
-    ) {
-      response.status(409).json({
-        error: { code: "NOTICE_CHANGED", message: "Read the current notice" },
-      });
-      return;
-    }
-    await repository.accept(response.locals.userId);
-    response.status(204).end();
-  });
-  const walletId: RequestHandler = (request, response, next) => {
+  app.post(
+    "/api/privacy/accept",
+    mutationCsrfGuard,
+    async (request, response) => {
+      if (
+        !z
+          .object({ version: z.literal(notice.version) })
+          .strict()
+          .safeParse(request.body).success
+      ) {
+        response.status(409).json({
+          error: { code: "NOTICE_CHANGED", message: "Read the current notice" },
+        });
+        return;
+      }
+      await repository.privacyAcceptanceRecord(response.locals.userId);
+      response.status(204).end();
+    },
+  );
+  const walletIdValidate: RequestHandler = (request, response, next) => {
     if (!z.uuid().safeParse(request.params.walletId).success) {
       response
         .status(400)
@@ -89,36 +101,40 @@ export function registerWalletRoutes(
     }
     next();
   };
-  app.get("/api/wallets/:walletId", walletId, async (request, response) => {
-    const query = z
-      .object({
-        filter: z.enum(["all", "income", "expense", "saving"]).default("all"),
-        page: z.coerce.number().int().min(1).max(1000000).default(1),
-      })
-      .strict()
-      .safeParse(request.query);
-    if (!query.success) {
-      response
-        .status(400)
-        .json({ error: { code: "BAD_REQUEST", message: "Invalid query" } });
-      return;
-    }
-    response.json(
-      await repository.snapshot(
-        response.locals.userId,
-        String(request.params.walletId),
-        query.data.filter,
-        query.data.page,
-        now(),
-      ),
-    );
-  });
+  app.get(
+    "/api/wallets/:walletId",
+    walletIdValidate,
+    async (request, response) => {
+      const query = z
+        .object({
+          filter: z.enum(["all", "income", "expense", "saving"]).default("all"),
+          page: z.coerce.number().int().min(1).max(1000000).default(1),
+        })
+        .strict()
+        .safeParse(request.query);
+      if (!query.success) {
+        response
+          .status(400)
+          .json({ error: { code: "BAD_REQUEST", message: "Invalid query" } });
+        return;
+      }
+      response.json(
+        await repository.walletSnapshotRead(
+          response.locals.userId,
+          String(request.params.walletId),
+          query.data.filter,
+          query.data.page,
+          now(),
+        ),
+      );
+    },
+  );
   app.post(
     "/api/wallets/:walletId/transactions",
-    csrf,
-    walletId,
+    mutationCsrfGuard,
+    walletIdValidate,
     async (request, response) => {
-      const parsed = transactionInput.safeParse(request.body);
+      const parsed = transactionCreateInputSchema.safeParse(request.body);
       if (!parsed.success) {
         response.status(400).json({
           error: { code: "BAD_REQUEST", message: "Invalid transaction" },
@@ -128,7 +144,7 @@ export function registerWalletRoutes(
       response
         .status(201)
         .json(
-          await repository.create(
+          await repository.walletTransactionCreate(
             response.locals.userId,
             String(request.params.walletId),
             parsed.data,
@@ -136,7 +152,7 @@ export function registerWalletRoutes(
         );
     },
   );
-  const transactionId: RequestHandler = (request, response, next) => {
+  const transactionIdValidate: RequestHandler = (request, response, next) => {
     if (!z.uuid().safeParse(request.params.transactionId).success) {
       response.status(400).json({
         error: {
@@ -148,21 +164,21 @@ export function registerWalletRoutes(
     }
     next();
   };
-  const editInput = transactionInput
+  const transactionUpdateInputSchema = transactionCreateInputSchema
     .omit({ operationId: true, type: true })
     .extend({ expectedUpdatedAt: z.iso.datetime() })
     .strict();
-  const deleteInput = z
+  const transactionDeleteInputSchema = z
     .object({ operationId: z.uuid(), expectedUpdatedAt: z.iso.datetime() })
     .strict();
   const transactionPath = "/api/wallets/:walletId/transactions/:transactionId";
   app.patch(
     transactionPath,
-    csrf,
-    walletId,
-    transactionId,
+    mutationCsrfGuard,
+    walletIdValidate,
+    transactionIdValidate,
     async (request, response) => {
-      const parsed = editInput.safeParse(request.body);
+      const parsed = transactionUpdateInputSchema.safeParse(request.body);
       if (!parsed.success) {
         response.status(400).json({
           error: {
@@ -173,7 +189,7 @@ export function registerWalletRoutes(
         return;
       }
       response.json(
-        await repository.edit(
+        await repository.walletTransactionUpdate(
           response.locals.userId,
           String(request.params.walletId),
           String(request.params.transactionId),
@@ -185,11 +201,11 @@ export function registerWalletRoutes(
   );
   app.delete(
     transactionPath,
-    csrf,
-    walletId,
-    transactionId,
+    mutationCsrfGuard,
+    walletIdValidate,
+    transactionIdValidate,
     async (request, response) => {
-      const parsed = deleteInput.safeParse(request.body);
+      const parsed = transactionDeleteInputSchema.safeParse(request.body);
       if (!parsed.success) {
         response.status(400).json({
           error: {
@@ -200,7 +216,7 @@ export function registerWalletRoutes(
         return;
       }
       response.json(
-        await repository.remove(
+        await repository.walletTransactionDelete(
           response.locals.userId,
           String(request.params.walletId),
           String(request.params.transactionId),
@@ -212,9 +228,9 @@ export function registerWalletRoutes(
   );
   app.post(
     `${transactionPath}/restore`,
-    csrf,
-    walletId,
-    transactionId,
+    mutationCsrfGuard,
+    walletIdValidate,
+    transactionIdValidate,
     async (request, response) => {
       const parsed = z
         .object({ operationId: z.uuid() })
@@ -229,7 +245,7 @@ export function registerWalletRoutes(
         });
         return;
       }
-      await repository.restore(
+      await repository.walletTransactionRestore(
         response.locals.userId,
         String(request.params.walletId),
         String(request.params.transactionId),
@@ -241,11 +257,11 @@ export function registerWalletRoutes(
   );
   app.put(
     "/api/wallets/:walletId/savings-goal",
-    csrf,
-    walletId,
+    mutationCsrfGuard,
+    walletIdValidate,
     async (request, response) => {
       const parsed = z
-        .object({ amount: money })
+        .object({ amount: moneyAmountSchema })
         .strict()
         .safeParse(request.body);
       if (!parsed.success) {
@@ -254,7 +270,7 @@ export function registerWalletRoutes(
           .json({ error: { code: "BAD_REQUEST", message: "Invalid goal" } });
         return;
       }
-      await repository.setGoal(
+      await repository.savingsGoalUpdate(
         response.locals.userId,
         String(request.params.walletId),
         parsed.data.amount,

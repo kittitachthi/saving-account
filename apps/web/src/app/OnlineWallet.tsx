@@ -15,7 +15,7 @@ import { SavingsChart, SavingsGoalForm } from "../features/savings";
 import { LogoutConfirmation } from "../features/account";
 import { SettingsSurface } from "../features/settings";
 import { useTheme } from "../features/theme";
-import { useWallet, presentWallet } from "../features/wallets";
+import { useWallet, walletSnapshotPresent } from "../features/wallets";
 import styles from "./OnlineWallet.module.css";
 
 export function OnlineWallet({
@@ -50,7 +50,7 @@ export function OnlineWallet({
   const [undoPending, setUndoPending] = useState(false);
   const transactionFocus = useRef<HTMLElement | null>(null);
   const refreshButton = useRef<HTMLButtonElement>(null);
-  const closeTransaction = () => {
+  const transactionDialogClose = () => {
     setEditing(null);
     setEntryOpen(false);
     setDeleting(null);
@@ -77,7 +77,7 @@ export function OnlineWallet({
   const { theme, toggleTheme } = useTheme();
   const mascot = useDashboardMascot();
   const snapshot = wallet.snapshot;
-  const view = snapshot ? presentWallet(snapshot) : null;
+  const view = snapshot ? walletSnapshotPresent(snapshot) : null;
   return (
     <AppShell
       displayName={user.displayName}
@@ -94,8 +94,8 @@ export function OnlineWallet({
         <FinancialOverview
           displayName={user.displayName}
           hasGoal={view.goal !== null}
-          onSetGoal={() => setGoalOpen(true)}
-          onAdd={() => setEntryOpen(true)}
+          onSavingsGoalEditRequest={() => setGoalOpen(true)}
+          onTransactionCreateRequest={() => setEntryOpen(true)}
           disabled={wallet.busy}
           notice={
             <div className={styles.notice}>
@@ -108,7 +108,7 @@ export function OnlineWallet({
               <button
                 ref={refreshButton}
                 disabled={wallet.busy}
-                onClick={() => void wallet.reload()}
+                onClick={() => void wallet.walletSnapshotReload()}
               >
                 รีเฟรชข้อมูล
               </button>
@@ -129,17 +129,17 @@ export function OnlineWallet({
             moneyUnit="satang"
             transactions={view.transactions}
             filter={wallet.filter}
-            onFilter={wallet.setFilter}
+            onTransactionFilterChange={wallet.transactionFilterChange}
             page={snapshot.page}
             now={new Date()}
-            onPage={wallet.setPage}
+            onTransactionPageChange={wallet.transactionPageChange}
             newItemId={null}
             actionsDisabled={wallet.busy}
-            onRequestEdit={(item) => {
+            onTransactionEditRequest={(item) => {
               transactionFocus.current = document.activeElement as HTMLElement;
               setEditing(item);
             }}
-            onRequestDelete={(item) => {
+            onTransactionDeleteRequest={(item) => {
               transactionFocus.current = document.activeElement as HTMLElement;
               setDeleteError("");
               setActionError("");
@@ -170,7 +170,9 @@ export function OnlineWallet({
           {wallet.error ? (
             <>
               <p role="alert">{wallet.error}</p>
-              <button onClick={() => void wallet.reload()}>ลองใหม่</button>
+              <button onClick={() => void wallet.walletSnapshotReload()}>
+                ลองใหม่
+              </button>
             </>
           ) : (
             <p role="status">กำลังโหลดกระเป๋าส่วนตัว…</p>
@@ -182,8 +184,8 @@ export function OnlineWallet({
           initialTransaction={editing ?? undefined}
           availableBalance={view.totals.balance}
           walletToday={snapshot.today}
-          onClose={closeTransaction}
-          onAdd={async (item) => {
+          onTransactionFormClose={transactionDialogClose}
+          onTransactionSubmit={async (item) => {
             try {
               const input = {
                 title: item.title,
@@ -195,11 +197,11 @@ export function OnlineWallet({
               };
               if (editing) {
                 const { type: _type, ...fields } = input;
-                await wallet.edit(String(editing.id), {
+                await wallet.transactionUpdate(String(editing.id), {
                   ...fields,
                   expectedUpdatedAt: editing.updatedAt!,
                 });
-              } else await wallet.add(input);
+              } else await wallet.transactionCreate(input);
               mascot.reactToResult(item.type);
               return true;
             } catch (error) {
@@ -215,11 +217,11 @@ export function OnlineWallet({
           moneyUnit="satang"
           pending={wallet.busy}
           error={deleteError}
-          onCancel={closeTransaction}
-          onConfirm={() => {
+          onTransactionDeleteCancel={transactionDialogClose}
+          onTransactionDeleteConfirm={() => {
             if (wallet.busy) return;
             void wallet
-              .remove(String(deleting.item.id), {
+              .transactionDelete(String(deleting.item.id), {
                 operationId: deleting.operationId,
                 expectedUpdatedAt: deleting.item.updatedAt!,
               })
@@ -249,12 +251,12 @@ export function OnlineWallet({
           key={undo.operationId}
           autoFocus
           pending={undoPending || wallet.busy}
-          onUndo={() => {
+          onTransactionDeleteUndo={() => {
             if (undoPending || wallet.busy) return;
             setUndoPending(true);
             setActionError("");
             void wallet
-              .restore(undo.id, undo.operationId)
+              .transactionRestore(undo.id, undo.operationId)
               .then(() => {
                 setUndo(null);
                 refreshButton.current?.focus();
@@ -271,7 +273,7 @@ export function OnlineWallet({
       {goalOpen && view && (
         <SavingsGoalForm
           currentGoal={view.goal}
-          onlineSave={wallet.setGoal}
+          onlineSave={wallet.savingsGoalUpdate}
           onClose={() => setGoalOpen(false)}
         />
       )}

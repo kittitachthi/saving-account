@@ -7,7 +7,7 @@ import { AuthService } from "../auth/auth.service.js";
 import { PrismaAuthRepository } from "../auth/prisma-auth.repository.js";
 import { privacyNotice } from "../privacy/privacy-notice.js";
 import { WalletRepository } from "./wallet.repository.js";
-import { registerWalletRoutes } from "./wallet.routes.js";
+import { walletRoutesRegister } from "./wallet.routes.js";
 
 describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", () => {
   const db = createDatabase(
@@ -35,7 +35,7 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
   const app = createApp({
     checkDatabase: () => db.checkConnection(),
     registerRoutes: (app) =>
-      registerWalletRoutes(
+      walletRoutesRegister(
         app,
         auth,
         new WalletRepository(db.client, privacyNotice.version),
@@ -44,12 +44,12 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
         () => new Date(clock),
       ),
   });
-  const path = (id?: string) =>
-    `/api/wallets/${walletId}${id ? `/transactions/${id}` : ""}`;
-  const create = async (type: string, amount: number) =>
+  const walletTransactionPathBuild = (transactionId?: string) =>
+    `/api/wallets/${walletId}${transactionId ? `/transactions/${transactionId}` : ""}`;
+  const walletTransactionCreateRequest = async (type: string, amount: number) =>
     (
       await request(app)
-        .post(`${path()}/transactions`)
+        .post(`${walletTransactionPathBuild()}/transactions`)
         .set(trusted)
         .set("Cookie", cookie)
         .send({
@@ -63,7 +63,7 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
         })
         .expect(201)
     ).body;
-  const edit = (
+  const walletTransactionUpdateBodyBuild = (
     row: {
       title: string;
       category: string;
@@ -82,12 +82,17 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
     expectedUpdatedAt: row.updatedAt,
     ...extra,
   });
-  const deletion = (row: { updatedAt: string }) => ({
+  const walletTransactionDeleteBodyBuild = (row: { updatedAt: string }) => ({
     operationId: randomUUID(),
     expectedUpdatedAt: row.updatedAt,
   });
-  const snapshot = async () =>
-    (await request(app).get(path()).set("Cookie", cookie).expect(200)).body;
+  const walletSnapshotRequest = async () =>
+    (
+      await request(app)
+        .get(walletTransactionPathBuild())
+        .set("Cookie", cookie)
+        .expect(200)
+    ).body;
   beforeAll(async () => {
     const user = await db.client.user.create({
       data: {
@@ -121,13 +126,13 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
   });
 
   it("edits all allowed fields, preserves creation time and rejects stale edits from another device", async () => {
-    const row = await create("income", 10000);
+    const row = await walletTransactionCreateRequest("income", 10000);
     const updated = await request(app)
-      .patch(path(row.id))
+      .patch(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
       .send(
-        edit(row, {
+        walletTransactionUpdateBodyBuild(row, {
           title: "แก้แล้ว",
           category: "รายได้เสริม",
           amount: 12345,
@@ -145,13 +150,13 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
     expect(Date.parse(updated.body.updatedAt)).toBeGreaterThan(
       Date.parse(row.updatedAt),
     );
-    expect((await snapshot()).totals.income).toBe(12345);
-    expect((await snapshot()).monthly.income).toBe(0);
+    expect((await walletSnapshotRequest()).totals.income).toBe(12345);
+    expect((await walletSnapshotRequest()).monthly.income).toBe(0);
     await request(app)
-      .patch(path(row.id))
+      .patch(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
-      .send(edit(row))
+      .send(walletTransactionUpdateBodyBuild(row))
       .expect(409);
     for (const fields of [
       { amount: 1.1 },
@@ -162,20 +167,24 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
       { type: "expense" },
     ])
       await request(app)
-        .patch(path(row.id))
+        .patch(walletTransactionPathBuild(row.id))
         .set(trusted)
         .set("Cookie", cookie)
-        .send(edit(updated.body, fields))
+        .send(walletTransactionUpdateBodyBuild(updated.body, fields))
         .expect(400);
   });
 
   it("protects edit/delete/restore with authentication, CSRF, consent and owner membership", async () => {
-    const row = await create("income", 10000);
+    const row = await walletTransactionCreateRequest("income", 10000);
     const cases = () => [
-      request(app).patch(path(row.id)).send(edit(row)),
-      request(app).delete(path(row.id)).send(deletion(row)),
       request(app)
-        .post(`${path(row.id)}/restore`)
+        .patch(walletTransactionPathBuild(row.id))
+        .send(walletTransactionUpdateBodyBuild(row)),
+      request(app)
+        .delete(walletTransactionPathBuild(row.id))
+        .send(walletTransactionDeleteBodyBuild(row)),
+      request(app)
+        .post(`${walletTransactionPathBuild(row.id)}/restore`)
         .send({ operationId: randomUUID() }),
     ];
     for (const call of cases()) await call.set(trusted).expect(401);
@@ -211,79 +220,81 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
   });
 
   it("serializes edits and spending; prevents negative balances and double writes", async () => {
-    const income = await create("income", 10000);
-    const expense = await create("expense", 6000);
+    const income = await walletTransactionCreateRequest("income", 10000);
+    const expense = await walletTransactionCreateRequest("expense", 6000);
     await request(app)
-      .patch(path(income.id))
+      .patch(walletTransactionPathBuild(income.id))
       .set(trusted)
       .set("Cookie", cookie)
-      .send(edit(income, { amount: 5000 }))
+      .send(walletTransactionUpdateBodyBuild(income, { amount: 5000 }))
       .expect(409);
     await request(app)
-      .delete(path(income.id))
+      .delete(walletTransactionPathBuild(income.id))
       .set(trusted)
       .set("Cookie", cookie)
-      .send(deletion(income))
+      .send(walletTransactionDeleteBodyBuild(income))
       .expect(409);
     const results = await Promise.all(
       [8000, 9000].map((amount) =>
         request(app)
-          .patch(path(expense.id))
+          .patch(walletTransactionPathBuild(expense.id))
           .set(trusted)
           .set("Cookie", cookie)
-          .send(edit(expense, { amount })),
+          .send(walletTransactionUpdateBodyBuild(expense, { amount })),
       ),
     );
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
-    expect((await snapshot()).totals.balance).toBeGreaterThanOrEqual(0);
+    expect(
+      (await walletSnapshotRequest()).totals.balance,
+    ).toBeGreaterThanOrEqual(0);
   });
 
   it("deletes immediately, retries without extending the deadline, and restores exactly once", async () => {
-    await create("income", 10000);
-    const row = await create("saving", 1234);
-    const input = deletion(row);
+    await walletTransactionCreateRequest("income", 10000);
+    const row = await walletTransactionCreateRequest("saving", 1234);
+    const input = walletTransactionDeleteBodyBuild(row);
     const removed = await request(app)
-      .delete(path(row.id))
+      .delete(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
       .send(input)
       .expect(200);
-    expect((await snapshot()).totals.saving).toBe(0);
-    expect((await snapshot()).transactions).toHaveLength(1);
+    expect((await walletSnapshotRequest()).totals.saving).toBe(0);
+    expect((await walletSnapshotRequest()).transactions).toHaveLength(1);
     clock += 4999;
     const retry = await request(app)
-      .delete(path(row.id))
+      .delete(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
       .send(input)
       .expect(200);
     expect(retry.body.undoUntil).toBe(removed.body.undoUntil);
     await request(app)
-      .post(`${path(row.id)}/restore`)
+      .post(`${walletTransactionPathBuild(row.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
       .expect(204);
     clock += 10000;
     await request(app)
-      .post(`${path(row.id)}/restore`)
+      .post(`${walletTransactionPathBuild(row.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
       .expect(204);
-    expect((await snapshot()).totals.saving).toBe(1234);
-    const restored = (await snapshot()).transactions.find(
+    expect((await walletSnapshotRequest()).totals.saving).toBe(1234);
+    const restored = (await walletSnapshotRequest()).transactions.find(
       (item: { id: string }) => item.id === row.id,
     );
     expect(restored.createdAt).toBe(row.createdAt);
     await request(app)
-      .delete(path(row.id))
+      .delete(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
-      .send(deletion(restored))
+      .send(walletTransactionDeleteBodyBuild(restored))
       .expect(200);
     await request(app)
-      .post(`${path(row.id)}/restore`)
+      .post(`${walletTransactionPathBuild(row.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
@@ -291,20 +302,20 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
   });
 
   it("serializes balance changes across different rows and preserves safe-integer totals on restore", async () => {
-    await create("income", 10000);
-    const expense = await create("expense", 1000);
-    const saving = await create("saving", 1000);
+    await walletTransactionCreateRequest("income", 10000);
+    const expense = await walletTransactionCreateRequest("expense", 1000);
+    const saving = await walletTransactionCreateRequest("saving", 1000);
     const results = await Promise.all(
       [expense, saving].map((row) =>
         request(app)
-          .patch(path(row.id))
+          .patch(walletTransactionPathBuild(row.id))
           .set(trusted)
           .set("Cookie", cookie)
-          .send(edit(row, { amount: 8000 })),
+          .send(walletTransactionUpdateBodyBuild(row, { amount: 8000 })),
       ),
     );
     expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
-    expect((await snapshot()).totals.balance).toBe(1000);
+    expect((await walletSnapshotRequest()).totals.balance).toBe(1000);
     const largeWallet = await db.client.wallet.create({
       data: {
         ownerId: userId,
@@ -313,38 +324,40 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
       },
     });
     walletId = largeWallet.id;
-    const income = await create("income", 1);
-    const input = deletion(income);
+    const income = await walletTransactionCreateRequest("income", 1);
+    const input = walletTransactionDeleteBodyBuild(income);
     await request(app)
-      .delete(path(income.id))
+      .delete(walletTransactionPathBuild(income.id))
       .set(trusted)
       .set("Cookie", cookie)
       .send(input)
       .expect(200);
-    await create("income", Number.MAX_SAFE_INTEGER);
+    await walletTransactionCreateRequest("income", Number.MAX_SAFE_INTEGER);
     const restore = await request(app)
-      .post(`${path(income.id)}/restore`)
+      .post(`${walletTransactionPathBuild(income.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
       .expect(409);
     expect(restore.body.error.code).toBe("AMOUNT_LIMIT");
-    expect((await snapshot()).totals.income).toBe(Number.MAX_SAFE_INTEGER);
+    expect((await walletSnapshotRequest()).totals.income).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
   });
 
   it("rejects Undo at the server deadline and when another device spent the freed balance", async () => {
-    await create("income", 10000);
-    const row = await create("expense", 7000);
-    const input = deletion(row);
+    await walletTransactionCreateRequest("income", 10000);
+    const row = await walletTransactionCreateRequest("expense", 7000);
+    const input = walletTransactionDeleteBodyBuild(row);
     await request(app)
-      .delete(path(row.id))
+      .delete(walletTransactionPathBuild(row.id))
       .set(trusted)
       .set("Cookie", cookie)
       .send(input)
       .expect(200);
-    await create("saving", 8000);
+    await walletTransactionCreateRequest("saving", 8000);
     const failed = await request(app)
-      .post(`${path(row.id)}/restore`)
+      .post(`${walletTransactionPathBuild(row.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
@@ -352,13 +365,13 @@ describe("transaction edits, deletion and timed Undo through HTTP/PostgreSQL", (
     expect(failed.body.error.code).toBe("INSUFFICIENT_BALANCE");
     clock += 5000;
     const expired = await request(app)
-      .post(`${path(row.id)}/restore`)
+      .post(`${walletTransactionPathBuild(row.id)}/restore`)
       .set(trusted)
       .set("Cookie", cookie)
       .send({ operationId: input.operationId })
       .expect(409);
     expect(expired.body.error.code).toBe("UNDO_EXPIRED");
-    expect((await snapshot()).totals).toEqual({
+    expect((await walletSnapshotRequest()).totals).toEqual({
       income: 10000,
       expense: 0,
       saving: 8000,

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Transaction, TransactionType } from "./domain";
 import { Overlay } from "../../shared/ui/Overlay";
-import styles from "./Transactions.module.css";
+import styles from "./TransactionForm.module.css";
 import {
   parseBahtToSatang,
   formatMoney,
@@ -10,8 +10,8 @@ import {
 } from "../../shared/money-input";
 
 type Props = {
-  onClose: () => void;
-  onAdd: (item: Transaction) => boolean | Promise<boolean>;
+  onTransactionFormClose: () => void;
+  onTransactionSubmit: (item: Transaction) => boolean | Promise<boolean>;
   availableBalance: number;
   walletToday?: string;
   initialTransaction?: Transaction;
@@ -26,8 +26,8 @@ const savingCategories = [
 const expenseCategories = ["อาหาร", "เดินทาง", "ช้อปปิ้ง", "บ้าน", "อื่นๆ"];
 
 export function TransactionForm({
-  onClose,
-  onAdd,
+  onTransactionFormClose,
+  onTransactionSubmit,
   availableBalance,
   walletToday,
   initialTransaction,
@@ -50,12 +50,12 @@ export function TransactionForm({
     [category, setCategory] = useState(initialTransaction?.category ?? "อาหาร"),
     [customCategory, setCustomCategory] = useState(""),
     [error, setError] = useState("");
-  const chooseType = (next: TransactionType) => {
-    setType(next);
-    setCategory(next === "saving" ? "เงินฉุกเฉิน" : "อาหาร");
+  const transactionTypeSelect = (nextTransactionType: TransactionType) => {
+    setType(nextTransactionType);
+    setCategory(nextTransactionType === "saving" ? "เงินฉุกเฉิน" : "อาหาร");
     setError("");
   };
-  const save = (event: FormEvent) => {
+  const transactionFormSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (saving.current) return;
     const amountSatang = parseBahtToSatang(amount);
@@ -92,7 +92,7 @@ export function TransactionForm({
       อื่นๆ: "•",
     };
     const createdAt = new Date().toISOString();
-    const item: Transaction = {
+    const transactionDraft: Transaction = {
       id: Date.now(),
       title: title.trim(),
       category: initialTransaction
@@ -111,10 +111,10 @@ export function TransactionForm({
         ? { occurredOn, occurredTime: occurredTime || null, amountSatang }
         : {}),
     };
-    const finish = (saved: boolean) => {
+    const transactionSubmitComplete = (transactionSaved: boolean) => {
       saving.current = false;
       setPending(false);
-      if (saved) onClose();
+      if (transactionSaved) onTransactionFormClose();
       else
         setError(
           walletToday
@@ -125,47 +125,54 @@ export function TransactionForm({
     saving.current = true;
     setPending(true);
     try {
-      const result = onAdd(item);
-      if (typeof result === "boolean") finish(result);
+      const transactionSubmitResult = onTransactionSubmit(transactionDraft);
+      if (typeof transactionSubmitResult === "boolean")
+        transactionSubmitComplete(transactionSubmitResult);
       else
-        void result.then(finish).catch((error) => {
-          finish(false);
-          if (error instanceof Error) setError(error.message);
-        });
+        void transactionSubmitResult
+          .then(transactionSubmitComplete)
+          .catch((error) => {
+            transactionSubmitComplete(false);
+            if (error instanceof Error) setError(error.message);
+          });
     } catch {
-      finish(false);
+      transactionSubmitComplete(false);
     }
   };
   return (
     <Overlay
       onDismiss={() => {
-        if (!saving.current) onClose();
+        if (!saving.current) onTransactionFormClose();
       }}
     >
       <form
-        className={styles.form}
+        className={styles["transaction-form-dialog"]}
         aria-label={initialTransaction ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}
-        onSubmit={save}
+        onSubmit={transactionFormSubmit}
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className={styles.formHead}>
+        <div className={styles["transaction-form-header"]}>
           <h3>{initialTransaction ? "แก้ไขรายการ" : "เพิ่มรายการใหม่"}</h3>
           <button
             type="button"
+            className={styles["transaction-form-close-button"]}
             aria-label="ปิด"
-            onClick={onClose}
+            onClick={onTransactionFormClose}
             disabled={pending}
           >
             ×
           </button>
         </div>
-        <fieldset disabled={pending} className={styles.fields}>
-          <div className={styles.switch}>
+        <fieldset
+          disabled={pending}
+          className={styles["transaction-form-fieldset"]}
+        >
+          <div className={styles["transaction-type-selector"]}>
             <button
               type="button"
               disabled={!!initialTransaction}
-              className={type === "expense" ? styles.on : undefined}
-              onClick={() => chooseType("expense")}
+              className={`${styles["transaction-type-button"]} ${type === "expense" ? styles["transaction-type-selected"] : ""}`}
+              onClick={() => transactionTypeSelect("expense")}
             >
               รายจ่าย
             </button>
@@ -174,10 +181,10 @@ export function TransactionForm({
               disabled={!!initialTransaction}
               className={
                 type === "income"
-                  ? `${styles.on} ${styles.incomeOn}`
-                  : undefined
+                  ? `${styles["transaction-type-button"]} ${styles["transaction-type-selected"]} ${styles["transaction-income-selected"]}`
+                  : styles["transaction-type-button"]
               }
-              onClick={() => chooseType("income")}
+              onClick={() => transactionTypeSelect("income")}
             >
               รายรับ
             </button>
@@ -186,10 +193,10 @@ export function TransactionForm({
               disabled={!!initialTransaction}
               className={
                 type === "saving"
-                  ? `${styles.on} ${styles.savingOn}`
-                  : undefined
+                  ? `${styles["transaction-type-button"]} ${styles["transaction-type-selected"]} ${styles["transaction-saving-selected"]}`
+                  : styles["transaction-type-button"]
               }
-              onClick={() => chooseType("saving")}
+              onClick={() => transactionTypeSelect("saving")}
             >
               เงินเก็บ
             </button>
@@ -285,11 +292,14 @@ export function TransactionForm({
               </label>
             )}
           {error && (
-            <p className={styles.formError} role="alert">
+            <p
+              className={styles["transaction-form-error-message"]}
+              role="alert"
+            >
               {error}
             </p>
           )}
-          <button className={styles.formSubmit}>
+          <button className={styles["transaction-save-button"]}>
             {pending ? "กำลังบันทึก…" : "บันทึกรายการ"}
           </button>
         </fieldset>

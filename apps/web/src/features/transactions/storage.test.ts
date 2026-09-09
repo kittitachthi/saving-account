@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   LEGACY_TRANSACTIONS_KEY,
-  loadTransactions,
-  saveTransactions,
+  transactionStorageLoad,
+  transactionStorageSave,
   TRANSACTIONS_KEY,
 } from "./storage";
 import type { Transaction } from "./domain";
@@ -18,7 +18,7 @@ const fallback: Transaction[] = [
     icon: "฿",
   },
 ];
-const storage = () => {
+const transactionStorageCreate = () => {
   const values = new Map<string, string>();
   return {
     getItem: (key: string) => values.get(key) ?? null,
@@ -35,19 +35,19 @@ const storage = () => {
 };
 describe("transaction storage adapter", () => {
   it("เริ่มว่างเมื่อ JSON ใช้ไม่ได้", () => {
-    const memory = storage();
+    const memory = transactionStorageCreate();
     memory.setItem(TRANSACTIONS_KEY, "{");
-    expect(loadTransactions(fallback, memory)).toEqual([]);
+    expect(transactionStorageLoad(fallback, memory)).toEqual([]);
   });
   it("บันทึกและโหลดเฉพาะ Transaction ที่ถูกต้อง", () => {
-    const memory = storage();
-    saveTransactions(fallback, memory);
-    expect(loadTransactions([], memory)).toEqual(fallback);
+    const memory = transactionStorageCreate();
+    transactionStorageSave(fallback, memory);
+    expect(transactionStorageLoad([], memory)).toEqual(fallback);
   });
   it("ล้าง storage schema เก่าและเริ่มด้วยรายการว่าง", () => {
-    const memory = storage();
+    const memory = transactionStorageCreate();
     memory.setItem(LEGACY_TRANSACTIONS_KEY, JSON.stringify([{ id: 1 }]));
-    expect(loadTransactions([], memory)).toEqual([]);
+    expect(transactionStorageLoad([], memory)).toEqual([]);
     expect(memory.getItem(LEGACY_TRANSACTIONS_KEY)).toBeNull();
   });
 });

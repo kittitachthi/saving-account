@@ -4,8 +4,8 @@ import styles from "../App.module.css";
 export function FinancialOverview({
   displayName,
   hasGoal,
-  onSetGoal,
-  onAdd,
+  onSavingsGoalEditRequest,
+  onTransactionCreateRequest,
   disabled,
   notice,
   summary,
@@ -13,8 +13,8 @@ export function FinancialOverview({
 }: {
   displayName: string;
   hasGoal: boolean;
-  onSetGoal: () => void;
-  onAdd: () => void;
+  onSavingsGoalEditRequest: () => void;
+  onTransactionCreateRequest: () => void;
   disabled?: boolean;
   notice?: ReactNode;
   summary: ReactNode;
@@ -31,14 +31,14 @@ export function FinancialOverview({
           <button
             className={styles.secondary}
             disabled={disabled}
-            onClick={onSetGoal}
+            onClick={onSavingsGoalEditRequest}
           >
             ◎ {hasGoal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมายเงินเก็บ"}
           </button>
           <button
             className={styles.primary}
             disabled={disabled}
-            onClick={onAdd}
+            onClick={onTransactionCreateRequest}
           >
             ＋ เพิ่มรายการ
           </button>

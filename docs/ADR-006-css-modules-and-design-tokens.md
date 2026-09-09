@@ -88,7 +88,7 @@ app/
 
 features/
 ├── dashboard/Dashboard.module.css
-├── transactions/Transactions.module.css
+├── transactions/<ComponentName>.module.css
 ├── category-chart/CategoryChart.module.css
 ├── settings/SettingsSurface.module.css
 └── theme/ThemeToggle.module.css
