@@ -1,13 +1,15 @@
 # CSS Architecture Guide
 
+ใช้ร่วมกับ [Coding standards](CODING-STANDARDS.md) ซึ่งกำหนด ownership และ naming สำหรับงานใหม่และการย้ายโค้ดเดิม
+
 ## ไฟล์ใหม่ควรอยู่ที่ใด
 
 - reset และ element defaults → global reset
 - fonts และ document-level typography → global styles
 - Theme values และ shared semantic decisions → design tokens
 - component layout และ states → CSS Module ของ component
-- Feature responsive behavior → CSS Module ของ Feature
-- Feature animation → CSS Module ของ Feature
+- component responsive behavior → CSS Module ชื่อเดียวกับ component
+- component animation → CSS Module ชื่อเดียวกับ component
 - backdrop/surface behavior ที่ซ้ำจริง → shared Overlay primitive
 
 ## Token Naming
@@ -55,9 +57,10 @@ Feature Module ใช้ `var(--color-surface)` และไม่ควรม�
 ## CSS Module Rules
 
 - ใช้ local class เป็นค่าเริ่มต้น
-- หนึ่ง Module เป็นของ component หรือกลุ่ม components ใน Feature เดียวกัน
-- ตั้งชื่อ class ตามบทบาทภายใน เช่น `.row`, `.amountExpense`, `.actions`
-- ไม่ใช้ชื่อ global Feature prefix เพราะ Module scope ให้อยู่แล้ว
+- component ที่มี style ของตัวเองต้องมี Module ชื่อเดียวกัน เช่น `TransactionForm.tsx` คู่กับ `TransactionForm.module.css`; ไม่สร้าง CSS ว่างให้ component ที่ไม่มี style
+- ไม่รวม component ที่ดูแลแยกกันไว้ใน feature-wide Module; shared primitive มี Module ของตัวเองและใช้ซ้ำผ่าน component API
+- ตั้งชื่อ class แบบ kebab-case ตาม owner-purpose-element เช่น `.transaction-edit-button`, `.transaction-actions-popover`, `.expense-chart-legend`
+- ใช้ prefix เพื่อให้ทีมค้นหาเจ้าของและหน้าที่ได้ง่าย แม้ CSS Modules มี local scope อยู่แล้ว; ใน TSX ใช้ `styles["transaction-edit-button"]`
 - อย่าอ้าง internal class ของ Module อื่น
 - ส่ง `className` extension เฉพาะเมื่อเป็น component contract ที่ตั้งใจไว้
 
@@ -71,7 +74,7 @@ Feature Module ใช้ `var(--color-surface)` และไม่ควรม�
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  .interactiveElement {
+  .transaction-actions-popover {
     animation: none;
     transform: none;
     transition-property: color, background-color, border-color;
@@ -115,7 +118,7 @@ Feature รับผิดชอบ:
 
 ## Definition of Done ต่อ Feature
 
-- Feature import CSS Module ของตนเอง
+- component import CSS Module ชื่อเดียวกับตนเอง หรือเป็น component ที่ไม่มี style ของตัวเองตามข้อยกเว้น
 - ไม่มี selector ของ Feature เหลือใน legacy global CSS
 - Light/Dark Theme ใช้ semantic tokens
 - responsive และ Reduced Motion behavior เหมือนเดิม

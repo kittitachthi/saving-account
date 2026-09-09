@@ -1,5 +1,7 @@
 # Architecture Guide
 
+อ่าน [Coding standards](CODING-STANDARDS.md) ก่อนเริ่มงานทุกครั้ง: ownership ของไฟล์และการตั้งชื่อเป็น acceptance criteria สำหรับทั้ง frontend/backend ข้อกำหนดใหม่นี้มีผลเหนือ convention เดิมที่ขัดกัน
+
 ## หลักการ
 
 โครงการใช้ Feature-based Architecture โดยจัดไฟล์ตามความสามารถของผลิตภัณฑ์ ไม่จัดตามชนิดทางเทคนิคเพียงอย่างเดียว แต่ละ Feature ต้องมี ownership ชัดเจนและเปิดเผย interface เท่าที่ consumer จำเป็นต้องใช้
@@ -29,7 +31,7 @@ Domain ต้องไม่รู้จัก React, DOM, CSS หรือ `loc
 
 - component มีความรับผิดชอบหลักหนึ่งเรื่อง
 - props ต้องมี type และชื่อสื่อความหมายทาง domain
-- ส่ง callback เช่น `onRequestDelete` แทนการให้ child แก้ global state
+- ส่ง callback ที่ระบุ domain เช่น `onTransactionDeleteRequest` แทนการให้ child แก้ global state
 - component แสดงผลไม่อ่าน `localStorage` หรือเรียก browser persistence API
 - อย่าแยก component เพียงเพื่อลดจำนวนบรรทัด ให้แยกเมื่อมี ownership, state boundary, reuse หรือ testing boundary ที่ชัด
 
@@ -43,7 +45,7 @@ Domain ต้องไม่รู้จัก React, DOM, CSS หรือ `loc
 
 ## Styling Rules
 
-- Feature และ component styles ใช้ CSS Modules
+- component ที่มี style ของตัวเองใช้ CSS Module ชื่อเดียวกับไฟล์ `.tsx` และวางคู่กัน ไม่รวม style ของหลาย component ไว้ใน module ระดับ feature
 - หลีกเลี่ยง selector ที่พึ่ง DOM nesting ของ component อื่น
 - สีและ spacing ที่เป็นระบบใช้ design tokens
 - รองรับ Light Theme, Dark Theme และ Reduced Motion ทุกครั้งที่เพิ่ม interaction ใหม่
