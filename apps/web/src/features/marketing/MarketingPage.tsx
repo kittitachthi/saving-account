@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import pockaMascot from "../../assets/pocka-mascot.png";
-import googleSignInDark from "../../assets/google-signin-dark.png";
-import googleSignInLight from "../../assets/google-signin-light.png";
+import googleSignInDark from "../../assets/googleicon.png";
+import googleSignInLight from "../../assets/googleicon.png";
 import { useBetaWaitlist } from "../beta-waitlist/useBetaWaitlist";
 import type { Theme } from "../theme";
 import { PockaBrandIcon } from "../../shared/ui/PockaBrandIcon";
