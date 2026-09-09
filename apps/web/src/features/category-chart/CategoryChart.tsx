@@ -35,13 +35,13 @@ export function CategoryChart({
     color: colors[index % colors.length],
     percentage: item.percentage,
     offset: item.offset,
-    ariaLabel: `${item.name} ${item.percentage}%`,
+    ariaLabel: `${item.name} ${item.percentage.toFixed(2)}%`,
   }));
   const tooltip = (item: CategorySummary) => (
     <>
       <b>{item.name}</b>
       <span>ยอดรวม ฿{money(item.total)}</span>
-      <span>{item.percentage}% ของรายจ่าย</span>
+      <span>{item.percentage.toFixed(2)}% ของรายจ่าย</span>
       <span>{item.count} รายการ</span>
       <span>
         เฉลี่ย ฿
@@ -71,7 +71,7 @@ export function CategoryChart({
         renderLegend={(item) => (
           <>
             <span>{item.name}</span>
-            <b>{item.percentage}%</b>
+            <b>{item.percentage.toFixed(2)}%</b>
           </>
         )}
       />

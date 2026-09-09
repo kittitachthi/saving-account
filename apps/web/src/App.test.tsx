@@ -1,4 +1,4 @@
-﻿import {
+import {
   fireEvent,
   render,
   screen,
@@ -230,7 +230,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     const user = userEvent.setup();
     render(<App />);
     const chart = screen.getByRole("group", { name: "กราฟสัดส่วนรายจ่าย" });
-    const segment = within(chart).getByRole("button", { name: "อาหาร 10%" });
+    const segment = within(chart).getByRole("button", { name: "อาหาร 10.00%" });
     await user.tab();
     segment.focus();
     const tooltip = await screen.findByRole("tooltip");
@@ -446,7 +446,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     const user = userEvent.setup();
     render(<App />);
     const chart = screen.getByRole("group", { name: "กราฟสัดส่วนรายจ่าย" });
-    const segment = within(chart).getByRole("button", { name: "อาหาร 10%" });
+    const segment = within(chart).getByRole("button", { name: "อาหาร 10.00%" });
     await user.click(segment);
     expect(screen.getByRole("tooltip")).toHaveTextContent("อาหาร");
     await user.unhover(segment);
@@ -598,7 +598,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     const user = userEvent.setup();
     render(<App />);
     const chart = screen.getByRole("group", { name: "กราฟสัดส่วนรายจ่าย" });
-    const segment = within(chart).getByRole("button", { name: "อาหาร 10%" });
+    const segment = within(chart).getByRole("button", { name: "อาหาร 10.00%" });
     await user.hover(segment);
     expect(screen.getByRole("tooltip")).toHaveTextContent("อาหาร");
     Object.defineProperty(window, "matchMedia", {
@@ -612,7 +612,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     const user = userEvent.setup();
     render(<App />);
     const legend = screen
-      .getAllByRole("button", { name: /อาหาร.*10%/ })
+      .getAllByRole("button", { name: /อาหาร.*10\.00%/ })
       .find((item) => item.tagName === "BUTTON")!;
     await user.hover(legend);
     expect(screen.getByRole("tooltip")).toHaveTextContent("อาหาร");

@@ -78,6 +78,14 @@
   transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
 }
+/* Hover transforms create stacking contexts; lift the open menu's ancestors. */
+.transaction:has(.actionsTrigger[aria-expanded="true"]) {
+  z-index: 1;
+}
+.panel:has(.actionsTrigger[aria-expanded="true"]) {
+  position: relative;
+  z-index: 1;
+}
 .transaction > i {
   display: grid;
   place-items: center;
