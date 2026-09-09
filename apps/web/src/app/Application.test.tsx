@@ -22,7 +22,16 @@ describe("Protected financial application", () => {
     render(<Application />);
 
     expect(await screen.findByText("เงินหายไปไหน")).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('[data-pocka-brand-mark="true"]'),
+    ).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "เข้าสู่ระบบ" }));
+    expect(
+      document.querySelectorAll('[data-pocka-brand-mark="true"]'),
+    ).toHaveLength(2);
+    document
+      .querySelectorAll('[data-pocka-brand-mark="true"]')
+      .forEach((mark) => expect(mark).toHaveAttribute("aria-hidden", "true"));
     const signIn = screen.getByRole("link", {
       name: "เข้าสู่ระบบด้วย Google",
     });
@@ -149,6 +158,9 @@ describe("Protected financial application", () => {
       await screen.findByRole("button", { name: /เพิ่มรายการ/ }),
     ).toBeInTheDocument();
     expect(screen.getByText("สวัสดี, Friend 👋")).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('[data-pocka-brand-mark="true"]'),
+    ).toHaveLength(1);
     expect(
       screen.queryByText("เข้าสู่ระบบด้วย Google"),
     ).not.toBeInTheDocument();

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ProfileAvatar } from "../features/account";
+import { PockaBrandIcon } from "../shared/ui/PockaBrandIcon";
 import styles from "./AppShell.module.css";
 type Props = {
   children: ReactNode;
@@ -60,7 +61,7 @@ export function AppShell({
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <b>฿</b>
+          <PockaBrandIcon />
           <strong>Pocka</strong>
         </div>
         <nav className={styles.nav}>

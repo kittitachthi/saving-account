@@ -1,0 +1,37 @@
+.pocka-brand-icon {
+  display: block;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.pocka-brand-compact-icon {
+  width: 34px;
+  height: 34px;
+}
+.pocka-brand-dialog-icon {
+  width: 64px;
+  height: 64px;
+}
+.pocka-brand-clasp-frame,
+.pocka-brand-clasp-knob {
+  fill: var(--color-brand-clasp);
+  stroke: var(--color-brand-clasp-outline);
+  stroke-width: 2.5;
+}
+.pocka-brand-purse-body {
+  fill: var(--color-brand-purse);
+  stroke: var(--color-brand-purse-outline);
+  stroke-width: 3;
+}
+.pocka-brand-purse-rim {
+  stroke: var(--color-brand-clasp);
+  stroke-linecap: round;
+  stroke-width: 4;
+}
+.pocka-brand-face-eye {
+  fill: var(--color-brand-face);
+}
+.pocka-brand-face-smile {
+  stroke: var(--color-brand-face);
+  stroke-linecap: round;
+  stroke-width: 3;
+}

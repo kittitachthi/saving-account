@@ -25,15 +25,6 @@
   padding: 0 10px 32px;
   font-size: 19px;
 }
-.brand > b {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--color-accent);
-  color: #fff;
-}
 .nav {
   display: grid;
   gap: 7px;

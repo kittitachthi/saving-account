@@ -23,16 +23,9 @@
   font-weight: 700;
   text-decoration: none;
 }
-.brandMark,
-.dialogMascot {
-  display: grid;
-  width: 38px;
-  height: 38px;
-  place-items: center;
-  border-radius: 13px;
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-  font-weight: 800;
+.pocka-login-brand-container {
+  display: flex;
+  justify-content: center;
 }
 .navActions {
   display: flex;
@@ -519,7 +512,7 @@
   background: var(--color-page);
   color: var(--color-text);
 }
-.dialogMascot {
+.pocka-login-brand-container {
   margin: auto;
 }
 .loginDialog h2 {
@@ -620,10 +613,6 @@ input:focus-visible {
 @media (max-width: 520px) {
   .nav {
     padding: 16px;
-  }
-  .brandMark {
-    width: 34px;
-    height: 34px;
   }
   .themeButton {
     width: 38px;

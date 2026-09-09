@@ -4,6 +4,7 @@ import googleSignInDark from "../../assets/google-signin-dark.png";
 import googleSignInLight from "../../assets/google-signin-light.png";
 import { useBetaWaitlist } from "../beta-waitlist/useBetaWaitlist";
 import type { Theme } from "../theme";
+import { PockaBrandIcon } from "../../shared/ui/PockaBrandIcon";
 import styles from "./MarketingPage.module.css";
 
 type Props = {
@@ -64,7 +65,7 @@ export function MarketingPage({
     <main className={styles.page}>
       <nav className={styles.nav} aria-label="เมนูหลัก">
         <a className={styles.brand} href="#top" aria-label="Pocka หน้าแรก">
-          <span className={styles.brandMark}>P</span>
+          <PockaBrandIcon />
           Pocka
         </a>
         <div className={styles.navActions}>
@@ -348,7 +349,9 @@ export function MarketingPage({
             >
               ×
             </button>
-            <span className={styles.dialogMascot}>P</span>
+            <div className={styles["pocka-login-brand-container"]}>
+              <PockaBrandIcon size="dialog" />
+            </div>
             <h2 id="login-title">ยินดีต้อนรับกลับมา</h2>
             <p>เข้าสู่ระบบสำหรับผู้ที่ได้รับเชิญเข้าร่วม Pocka Private Beta</p>
             <a
