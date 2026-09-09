@@ -43,13 +43,10 @@ function walletCategorySummariesCalculate(
 export function walletSnapshotSummarize(items: WalletTransaction[], now: Date) {
   const today = walletDayCalculate(now);
   const totals = { income: 0, expense: 0, saving: 0, balance: 0 };
-  const monthly = { income: 0, expense: 0 };
+  const monthly = { income: 0, expense: 0, saving: 0 };
   for (const item of items) {
     totals[item.type] += item.amount;
-    if (
-      item.type !== "saving" &&
-      item.occurredOn.slice(0, 7) === today.slice(0, 7)
-    )
+    if (item.occurredOn.slice(0, 7) === today.slice(0, 7))
       monthly[item.type] += item.amount;
   }
   totals.balance = totals.income - totals.expense - totals.saving;

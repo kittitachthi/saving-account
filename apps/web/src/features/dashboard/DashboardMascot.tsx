@@ -1,4 +1,5 @@
-import idle from "../../assets/mascot-idle.png";
+import idle from "../../assets/mascot-idle-seated.png";
+import idleBlink from "../../assets/mascot-idle-seated-blink.png";
 import income from "../../assets/pocka-mascot.png";
 import expense from "../../assets/mascot-expense.png";
 import saving from "../../assets/mascot-saving.png";
@@ -27,14 +28,19 @@ const images: Record<MascotState, string> = {
 export function DashboardMascot({ state }: { state: MascotState }) {
   return (
     <div
-      className={styles.mascot}
+      className={styles["dashboard-mascot"]}
       data-state={state}
       data-testid="dashboard-mascot"
     >
-      <div className={styles.character} aria-hidden="true">
+      <div className={styles["dashboard-mascot-character"]} aria-hidden="true">
         {Object.entries(images).map(([name, src]) => (
           <img
             key={name}
+            className={
+              name === "idle"
+                ? styles["dashboard-mascot-idle-primary-frame"]
+                : undefined
+            }
             src={src}
             alt=""
             width="720"
@@ -42,9 +48,17 @@ export function DashboardMascot({ state }: { state: MascotState }) {
             hidden={state !== name}
           />
         ))}
+        <img
+          className={styles["dashboard-mascot-idle-blink-frame"]}
+          src={idleBlink}
+          alt=""
+          width="1254"
+          height="1254"
+          hidden={state !== "idle"}
+        />
       </div>
       <p
-        className={styles.feedback}
+        className={styles["dashboard-mascot-feedback"]}
         role="status"
         aria-label="ข้อความจาก Pocka"
         aria-live="polite"

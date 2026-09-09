@@ -1,7 +1,7 @@
-import type { Transaction } from "../transactions/domain";
+import type { Transaction } from "../transactions";
 import { useFloatingTooltip } from "../../shared/ui/useFloatingTooltip";
-import { calculateDailyCashflow, type CashflowSegment } from "./domain";
-import styles from "./Dashboard.module.css";
+import { dailyCashflowCalculate, type CashflowSegment } from "./domain";
+import styles from "./DailyCashflowCard.module.css";
 import { formatMoney, type MoneyUnit } from "../../shared/money-input";
 
 export function DailyCashflowCard({
@@ -15,8 +15,9 @@ export function DailyCashflowCard({
   serverSegments?: CashflowSegment[];
   moneyUnit?: MoneyUnit;
 }) {
-  const money = (value: number) => formatMoney(value, moneyUnit);
-  const segments = serverSegments ?? calculateDailyCashflow(transactions, now);
+  const dailyCashflowMoneyFormat = (value: number) =>
+    formatMoney(value, moneyUnit);
+  const segments = serverSegments ?? dailyCashflowCalculate(transactions, now);
   const {
     rootRef,
     activeIndex,
@@ -33,18 +34,22 @@ export function DailyCashflowCard({
   } = useFloatingTooltip(segments, (segment, isPinned) => (
     <>
       <b>{segment.type === "income" ? "รายรับวันนี้" : "รายจ่ายวันนี้"}</b>
-      <span>ยอดรวม ฿{money(segment.total)}</span>
+      <span>ยอดรวม ฿{dailyCashflowMoneyFormat(segment.total)}</span>
       <span>{Math.round(segment.percentage)}% ของกระแสเงินวันนี้</span>
       <span>{segment.count} รายการ</span>
       {segment.highest.length ? (
         <>
           <span>รายการมูลค่าสูงสุด</span>
           <div
-            className={isPinned ? styles.highestListPinned : styles.highestList}
+            className={
+              isPinned
+                ? styles["daily-cashflow-highest-pinned-list"]
+                : styles["daily-cashflow-highest-list"]
+            }
           >
             {segment.highest.map((item) => (
               <span key={item.id}>
-                {item.title} · ฿{money(item.amount)} ·{" "}
+                {item.title} · ฿{dailyCashflowMoneyFormat(item.amount)} ·{" "}
                 {item.occurredOn
                   ? (item.occurredTime ?? item.occurredOn)
                   : new Intl.DateTimeFormat("th-TH", {
@@ -66,7 +71,7 @@ export function DailyCashflowCard({
   const income = segments[0],
     expense = segments[1],
     empty = income.count + expense.count === 0;
-  const trigger = (index: number) => ({
+  const dailyCashflowTriggerPropsBuild = (index: number) => ({
     onPointerDown: pointerDown,
     onPointerEnter: pointerEnter(index),
     onPointerMove: pointerMove(index),
@@ -77,45 +82,51 @@ export function DailyCashflowCard({
     onKeyDown: keyDown(index),
   });
   return (
-    <article ref={rootRef} className={styles.cashflow}>
+    <article ref={rootRef} className={styles["daily-cashflow-card"]}>
       <p>รายรับเทียบรายจ่ายวันนี้</p>
-      <div className={styles.cashflowValues}>
-        <button {...trigger(0)} aria-pressed={pinned && activeIndex === 0}>
-          รายรับ <b>฿{money(income.total)}</b>
+      <div className={styles["daily-cashflow-values"]}>
+        <button
+          {...dailyCashflowTriggerPropsBuild(0)}
+          aria-pressed={pinned && activeIndex === 0}
+        >
+          รายรับ <b>฿{dailyCashflowMoneyFormat(income.total)}</b>
         </button>
-        <button {...trigger(1)} aria-pressed={pinned && activeIndex === 1}>
-          รายจ่าย <b>฿{money(expense.total)}</b>
+        <button
+          {...dailyCashflowTriggerPropsBuild(1)}
+          aria-pressed={pinned && activeIndex === 1}
+        >
+          รายจ่าย <b>฿{dailyCashflowMoneyFormat(expense.total)}</b>
         </button>
       </div>
       {empty ? (
         <>
-          <div className={styles.emptyBar} />
+          <div className={styles["daily-cashflow-empty-bar"]} />
           <small>ยังไม่มีรายการวันนี้</small>
         </>
       ) : (
         <div
-          className={styles.cashflowBar}
+          className={styles["daily-cashflow-bar"]}
           aria-label={`รายรับ ${Math.round(income.percentage)}% รายจ่าย ${Math.round(expense.percentage)}%`}
         >
           {income.percentage > 0 && (
             <button
-              className={styles.incomeBar}
-              {...trigger(0)}
+              className={styles["daily-cashflow-income-bar"]}
+              {...dailyCashflowTriggerPropsBuild(0)}
               aria-label={`รายรับ ${Math.round(income.percentage)}%`}
               style={{ width: `${income.percentage}%` }}
             />
           )}
           {expense.percentage > 0 && (
             <button
-              className={styles.expenseBar}
-              {...trigger(1)}
+              className={styles["daily-cashflow-expense-bar"]}
+              {...dailyCashflowTriggerPropsBuild(1)}
               aria-label={`รายจ่าย ${Math.round(expense.percentage)}%`}
               style={{ width: `${expense.percentage}%` }}
             />
           )}
         </div>
       )}
-      <div className={styles.cashflowPercents}>
+      <div className={styles["daily-cashflow-percentages"]}>
         <span>{Math.round(income.percentage)}%</span>
         <span>{Math.round(expense.percentage)}%</span>
       </div>

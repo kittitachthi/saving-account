@@ -1,0 +1,108 @@
+.daily-cashflow-card {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  transition:
+    transform var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease,
+    background-color var(--duration-theme) ease;
+}
+.daily-cashflow-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+.daily-cashflow-card > p {
+  margin: 0 0 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.daily-cashflow-values,
+.daily-cashflow-percentages {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.daily-cashflow-values button {
+  border: 0;
+  padding: 2px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+}
+.daily-cashflow-values button:first-child b,
+.daily-cashflow-percentages span:first-child {
+  color: var(--color-accent);
+}
+.daily-cashflow-values button:last-child b,
+.daily-cashflow-percentages span:last-child {
+  color: var(--color-expense-accent);
+}
+.daily-cashflow-bar {
+  display: flex;
+  overflow: hidden;
+  height: 9px;
+  margin: 9px 0 5px;
+  border-radius: 10px;
+  background: var(--color-chart-track);
+}
+.daily-cashflow-bar button {
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  padding: 0;
+  transition:
+    filter var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+.daily-cashflow-income-bar {
+  background: var(--color-accent);
+  transform-origin: right;
+}
+.daily-cashflow-expense-bar {
+  background: var(--color-expense-accent);
+  transform-origin: left;
+}
+.daily-cashflow-bar button:hover,
+.daily-cashflow-bar button:focus-visible {
+  z-index: 1;
+  filter: brightness(1.12);
+  transform: scaleY(1.5);
+  outline: 2px solid var(--color-focus);
+}
+.daily-cashflow-percentages {
+  font-size: 10px;
+}
+.daily-cashflow-empty-bar {
+  height: 9px;
+  margin: 9px 0 5px;
+  border-radius: 10px;
+  background: var(--color-chart-track);
+}
+.daily-cashflow-card > small {
+  color: var(--color-text-muted);
+}
+.daily-cashflow-highest-list {
+  max-height: 120px;
+  overflow: hidden;
+}
+.daily-cashflow-highest-pinned-list {
+  max-height: 40vh;
+  overflow: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-cashflow-card {
+    transition:
+      background-color 0.01ms,
+      color 0.01ms,
+      border-color 0.01ms;
+    transform: none;
+  }
+  .daily-cashflow-card:hover {
+    transform: none;
+  }
+  .daily-cashflow-bar button {
+    transition: none;
+  }
+}

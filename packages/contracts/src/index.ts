@@ -55,7 +55,7 @@ export type WalletSnapshot = {
   page: number;
   totalPages: number;
   totals: { income: number; expense: number; saving: number; balance: number };
-  monthly: { income: number; expense: number };
+  monthly: { income: number; expense: number; saving: number };
   daily: Array<{
     type: "income" | "expense";
     total: number;

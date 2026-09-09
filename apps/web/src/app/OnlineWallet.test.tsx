@@ -125,7 +125,7 @@ function server({ accepted = true } = {}) {
             saving: 0,
             balance: input.amount,
           },
-          monthly: { income: input.amount, expense: 0 },
+          monthly: { income: input.amount, expense: 0, saving: 0 },
         };
       return Response.json(snapshot.transactions[0], { status: 201 });
     }
@@ -481,7 +481,7 @@ describe("online financial workflows through Application", () => {
     api.setSnapshot({
       ...emptyWallet(),
       totals: { income: 50000, expense: 10000, saving: 15000, balance: 25000 },
-      monthly: { income: 50000, expense: 10000 },
+      monthly: { income: 50000, expense: 10000, saving: 15000 },
       goal: 20000,
       savingsCategories: [
         { name: "ท่องเที่ยว", total: 15000, average: 15000, count: 1 },
@@ -489,6 +489,8 @@ describe("online financial workflows through Application", () => {
     });
     render(<Application />);
     await screen.findByText("เก็บแล้ว ฿150 จากเป้า ฿200");
+    expect(screen.getByText("เงินเก็บเดือนนี้")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "฿150" })).toBeInTheDocument();
     fireEvent.click(
       within(screen.getByRole("group", { name: "กรองรายการ" })).getByRole(
         "button",

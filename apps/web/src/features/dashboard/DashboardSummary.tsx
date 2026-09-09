@@ -1,6 +1,6 @@
 import type { TransactionTotals, Transaction } from "../transactions";
-import styles from "./Dashboard.module.css";
-import { calculateMonthlyCashflow } from "./domain";
+import styles from "./DashboardSummary.module.css";
+import { dashboardMonthlySummaryCalculate } from "./domain";
 import { DashboardMascot } from "./DashboardMascot";
 import type { MascotState } from "./useDashboardMascot";
 import { DailyCashflowCard } from "./DailyCashflowCard";
@@ -20,47 +20,68 @@ export function DashboardSummary({
   mascotState: MascotState;
   moneyUnit?: MoneyUnit;
   online?: {
-    monthly: { income: number; expense: number };
+    monthly: { income: number; expense: number; saving: number };
     daily: CashflowSegment[];
   };
 }) {
   const monthly =
-    online?.monthly ?? calculateMonthlyCashflow(transactions, now);
+    online?.monthly ?? dashboardMonthlySummaryCalculate(transactions, now);
   return (
     <>
-      <section className={styles.hero}>
-        <div className={styles.rings} aria-hidden="true">
+      <section className={styles["dashboard-balance-card"]}>
+        <div className={styles["dashboard-balance-rings"]} aria-hidden="true">
           <i />
           <i />
           <i />
         </div>
-        <div className={styles.balance}>
+        <div className={styles["dashboard-balance-content"]}>
           <p>ยอดเงินพร้อมใช้　◉</p>
           <h2>฿{formatMoney(totals.balance, moneyUnit, true)}</h2>
         </div>
         <DashboardMascot state={mascotState} />
       </section>
-      <section className={styles.stats}>
-        <article>
-          <i className={`${styles.stat} ${styles.incomeStat}`}>↙</i>
+      <section className={styles["dashboard-summary-grid"]}>
+        <article className={styles["dashboard-monthly-card"]}>
+          <i
+            className={`${styles["dashboard-monthly-icon"]} ${styles["dashboard-income-icon"]}`}
+          >
+            ↙
+          </i>
           <div>
             <p>รายรับเดือนนี้</p>
             <h3>฿{formatMoney(monthly.income, moneyUnit)}</h3>
           </div>
         </article>
-        <article>
-          <i className={`${styles.stat} ${styles.expenseStat}`}>↗</i>
+        <article className={styles["dashboard-monthly-card"]}>
+          <i
+            className={`${styles["dashboard-monthly-icon"]} ${styles["dashboard-expense-icon"]}`}
+          >
+            ↗
+          </i>
           <div>
             <p>รายจ่ายเดือนนี้</p>
             <h3>฿{formatMoney(monthly.expense, moneyUnit)}</h3>
           </div>
         </article>
-        <DailyCashflowCard
-          transactions={transactions}
-          now={now}
-          serverSegments={online?.daily}
-          moneyUnit={moneyUnit}
-        />
+        <article className={styles["dashboard-monthly-card"]}>
+          <i
+            className={`${styles["dashboard-monthly-icon"]} ${styles["dashboard-saving-icon"]}`}
+          >
+            ◎
+          </i>
+          <div>
+            <p>เงินเก็บเดือนนี้</p>
+            <h3>฿{formatMoney(monthly.saving, moneyUnit)}</h3>
+          </div>
+        </article>
+        <div className={styles["dashboard-daily-row"]}>
+          <DailyCashflowCard
+            transactions={transactions}
+            now={now}
+            serverSegments={online?.daily}
+            moneyUnit={moneyUnit}
+          />
+        </div>
       </section>
     </>
   );

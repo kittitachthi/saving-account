@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../transactions/domain";
-import { calculateDailyCashflow, calculateMonthlyCashflow } from "./domain";
+import {
+  dailyCashflowCalculate,
+  dashboardMonthlySummaryCalculate,
+} from "./domain";
 
 describe("monthly cashflow domain", () => {
-  it("uses the local year and month, excludes savings, and preserves fractional amounts", () => {
+  it("uses the local viewed month for all transaction types and preserves fractional amounts", () => {
     const items = [
       transaction(1, "income", 10.25, new Date(2026, 0, 1, 0).toISOString()),
       transaction(
@@ -23,14 +26,20 @@ describe("monthly cashflow domain", () => {
       transaction(6, "saving", 100, new Date(2026, 0, 1).toISOString()),
       transaction(7, "income", 999, "invalid"),
     ];
-    expect(calculateMonthlyCashflow(items, new Date(2026, 0, 15))).toEqual({
+    expect(
+      dashboardMonthlySummaryCalculate(items, new Date(2026, 0, 15)),
+    ).toEqual({
       income: 10.25,
       expense: 1.5,
+      saving: 100,
     });
-    expect(calculateMonthlyCashflow([], new Date(2026, 0, 15))).toEqual({
-      income: 0,
-      expense: 0,
-    });
+    expect(dashboardMonthlySummaryCalculate([], new Date(2026, 0, 15))).toEqual(
+      {
+        income: 0,
+        expense: 0,
+        saving: 0,
+      },
+    );
   });
 });
 
@@ -53,7 +62,7 @@ const transaction = (
 describe("daily cashflow domain", () => {
   it("คำนวณเฉพาะรายรับและรายจ่ายของวันท้องถิ่นปัจจุบัน", () => {
     const now = new Date(2026, 8, 3, 12);
-    const result = calculateDailyCashflow(
+    const result = dailyCashflowCalculate(
       [
         transaction(1, "income", 3000, new Date(2026, 8, 3, 8).toISOString()),
         transaction(2, "expense", 1000, new Date(2026, 8, 3, 9).toISOString()),
@@ -72,7 +81,7 @@ describe("daily cashflow domain", () => {
 
   it("คืนรายการมูลค่าสูงสุดร่วมกันครบและเรียงใหม่สุดก่อน", () => {
     const now = new Date(2026, 8, 3, 12);
-    const result = calculateDailyCashflow(
+    const result = dailyCashflowCalculate(
       [
         transaction(1, "income", 500, new Date(2026, 8, 3, 8).toISOString()),
         transaction(2, "income", 500, new Date(2026, 8, 3, 10).toISOString()),
@@ -85,7 +94,7 @@ describe("daily cashflow domain", () => {
 
   it("ให้ทั้งสองฝั่งเป็น 0% เมื่อไม่มีรายการวันนี้", () => {
     expect(
-      calculateDailyCashflow([], new Date()).map((item) => item.percentage),
+      dailyCashflowCalculate([], new Date()).map((item) => item.percentage),
     ).toEqual([0, 0]);
   });
 });

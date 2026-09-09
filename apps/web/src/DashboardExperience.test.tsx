@@ -79,6 +79,26 @@ function seed() {
         type: "expense",
         icon: "•",
       },
+      {
+        id: 5,
+        title: "เงินเก็บเก่า",
+        category: "สำรองฉุกเฉิน",
+        date: "",
+        createdAt: new Date(2026, 7, 31, 12).toISOString(),
+        amount: 60,
+        type: "saving",
+        icon: "◎",
+      },
+      {
+        id: 6,
+        title: "เงินเก็บใหม่",
+        category: "ท่องเที่ยว",
+        date: "",
+        createdAt: new Date(2026, 8, 7, 12).toISOString(),
+        amount: 40,
+        type: "saving",
+        icon: "◎",
+      },
     ]),
   );
 }
@@ -99,7 +119,15 @@ describe("Dashboard monthly totals and mascot", () => {
     render(<App />);
     expect(screen.getByRole("heading", { name: "฿500" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "฿50" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: /฿1,250/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "฿40" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /฿1,150/ })).toBeInTheDocument();
+    const summaryCards = screen.getAllByRole("article").slice(0, 4);
+    expect(summaryCards.map((card) => card.textContent)).toEqual([
+      expect.stringContaining("รายรับเดือนนี้"),
+      expect.stringContaining("รายจ่ายเดือนนี้"),
+      expect.stringContaining("เงินเก็บเดือนนี้"),
+      expect.stringContaining("รายรับเทียบรายจ่ายวันนี้"),
+    ]);
     expect(
       screen.queryByText(/8\.4%|12\.5%|3\.2%|จากเดือนที่แล้ว/),
     ).not.toBeInTheDocument();
@@ -108,8 +136,8 @@ describe("Dashboard monthly totals and mascot", () => {
     vi.setSystemTime(new Date(2026, 8, 30, 23, 59, 59));
     render(<App />);
     advance(1100);
-    expect(screen.getAllByRole("heading", { name: "฿0" })).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: /฿1,250/ })).toBeInTheDocument();
+    expect(screen.getAllByRole("heading", { name: "฿0" })).toHaveLength(3);
+    expect(screen.getByRole("heading", { name: /฿1,150/ })).toBeInTheDocument();
   });
   it("marks unavailable navigation visibly and excludes it from keyboard focus", () => {
     render(<App />);

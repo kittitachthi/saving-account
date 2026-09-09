@@ -43,7 +43,7 @@ describe("online wallet domain", () => {
       saving: 19,
       balance: 1000,
     });
-    expect(result.monthly).toEqual({ income: 30, expense: 11 });
+    expect(result.monthly).toEqual({ income: 30, expense: 11, saving: 19 });
     expect(result.daily[0].highest.map((x) => x.id)).toEqual(["b"]);
     expect(result.nextDayAt).toBe("2026-09-01T17:00:00.000Z");
   });

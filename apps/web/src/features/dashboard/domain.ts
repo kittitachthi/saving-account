@@ -1,19 +1,22 @@
 import type { Transaction, TransactionType } from "../transactions";
 
-export function calculateMonthlyCashflow(items: Transaction[], now: Date) {
+export function dashboardMonthlySummaryCalculate(
+  items: Transaction[],
+  viewedMonth: Date,
+) {
   return items.reduce(
     (totals, item) => {
       const date = new Date(item.createdAt ?? "");
       if (
-        (item.type === "income" || item.type === "expense") &&
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth()
+        !Number.isNaN(date.getTime()) &&
+        date.getFullYear() === viewedMonth.getFullYear() &&
+        date.getMonth() === viewedMonth.getMonth()
       ) {
         totals[item.type] += item.amount;
       }
       return totals;
     },
-    { income: 0, expense: 0 },
+    { income: 0, expense: 0, saving: 0 },
   );
 }
 
@@ -24,7 +27,10 @@ export type CashflowSegment = {
   count: number;
   highest: Transaction[];
 };
-const isSameLocalDay = (value: string | undefined, now: Date) => {
+const dailyCashflowSameLocalDayCheck = (
+  value: string | undefined,
+  now: Date,
+) => {
   if (!value) return false;
   const date = new Date(value);
   return (
@@ -34,14 +40,14 @@ const isSameLocalDay = (value: string | undefined, now: Date) => {
     date.getDate() === now.getDate()
   );
 };
-export const calculateDailyCashflow = (
+export const dailyCashflowCalculate = (
   items: Transaction[],
   now = new Date(),
 ): CashflowSegment[] => {
   const today = items.filter(
     (item) =>
       (item.type === "income" || item.type === "expense") &&
-      isSameLocalDay(item.createdAt, now),
+      dailyCashflowSameLocalDayCheck(item.createdAt, now),
   );
   const totals = { income: 0, expense: 0 };
   today.forEach((item) => {

@@ -18,7 +18,7 @@ export function emptyWallet(): WalletSnapshot {
     page: 1,
     totalPages: 1,
     totals: { income: 0, expense: 0, saving: 0, balance: 0 },
-    monthly: { income: 0, expense: 0 },
+    monthly: { income: 0, expense: 0, saving: 0 },
     goal: null,
     expenseCategories: [],
     savingsCategories: [],

@@ -353,7 +353,11 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
       saving: 1000,
       balance: 9000,
     });
-    expect(walletSnapshot.monthly).toEqual({ income: 11, expense: 11 });
+    expect(walletSnapshot.monthly).toEqual({
+      income: 11,
+      expense: 11,
+      saving: 1000,
+    });
     expect(walletSnapshot.today).toBe("2026-09-01");
     expect(walletSnapshot.goal).toBe(2000);
     expect(walletSnapshot.savingsCategories).toEqual([

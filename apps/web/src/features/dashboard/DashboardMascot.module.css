@@ -1,36 +1,46 @@
-.mascot {
+.dashboard-mascot {
   position: relative;
   align-self: stretch;
   min-width: 0;
   pointer-events: none;
 }
-.character {
+.dashboard-mascot-character {
   display: block;
   position: relative;
   width: 100%;
   aspect-ratio: 1;
   margin-top: -48px;
-  animation: breathe 3s ease-in-out infinite;
+  animation: dashboard-mascot-breathe 3s ease-in-out infinite;
 }
-.character img {
+.dashboard-mascot-character img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
-.mascot[data-state="income"] .character,
-.mascot[data-state="saving"] .character {
-  animation: celebrate 650ms ease-in-out;
+.dashboard-mascot[data-state="idle"] .dashboard-mascot-character {
+  transform-origin: 50% 86%;
+  animation: dashboard-mascot-idle 3.2s ease-in-out infinite;
 }
-.mascot[data-state="expense"] .character {
-  animation: acknowledge 650ms ease-in-out;
+.dashboard-mascot[data-state="idle"] .dashboard-mascot-idle-primary-frame {
+  animation: dashboard-mascot-primary-frame 4.8s step-end infinite;
 }
-.mascot[data-state="sleeping"] .character,
-.mascot[data-state="error"] .character {
+.dashboard-mascot[data-state="idle"] .dashboard-mascot-idle-blink-frame {
+  animation: dashboard-mascot-blink-and-swing 4.8s step-end infinite;
+}
+.dashboard-mascot[data-state="income"] .dashboard-mascot-character,
+.dashboard-mascot[data-state="saving"] .dashboard-mascot-character {
+  animation: dashboard-mascot-celebrate 650ms ease-in-out;
+}
+.dashboard-mascot[data-state="expense"] .dashboard-mascot-character {
+  animation: dashboard-mascot-acknowledge 650ms ease-in-out;
+}
+.dashboard-mascot[data-state="sleeping"] .dashboard-mascot-character,
+.dashboard-mascot[data-state="error"] .dashboard-mascot-character {
   animation: none;
 }
-.feedback {
+.dashboard-mascot-feedback {
   margin: 0;
   color: var(--color-on-accent);
   min-height: 2.8em;
@@ -39,32 +49,76 @@
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
-@keyframes breathe {
+@keyframes dashboard-mascot-breathe {
   50% {
     transform: translateY(-3px);
   }
 }
-@keyframes celebrate {
+@keyframes dashboard-mascot-idle {
+  25% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0deg);
+    filter: brightness(1.035);
+  }
+  75% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+@keyframes dashboard-mascot-blink-and-swing {
+  0%,
+  91%,
+  96%,
+  100% {
+    opacity: 0;
+  }
+  92%,
+  95% {
+    opacity: 1;
+  }
+}
+@keyframes dashboard-mascot-primary-frame {
+  0%,
+  91%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+  92%,
+  95% {
+    opacity: 0;
+  }
+}
+@keyframes dashboard-mascot-celebrate {
   50% {
     transform: translateY(-8px) rotate(3deg);
   }
 }
-@keyframes acknowledge {
+@keyframes dashboard-mascot-acknowledge {
   50% {
     transform: rotate(-3deg);
   }
 }
 @media (max-width: 600px) {
-  .character {
+  .dashboard-mascot-character {
     margin-top: -34px;
   }
-  .feedback {
+  .dashboard-mascot-feedback {
     font-size: 11px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mascot[data-state] .character {
+  .dashboard-mascot[data-state] .dashboard-mascot-character {
     animation: none;
     transform: none;
+  }
+  .dashboard-mascot[data-state] .dashboard-mascot-idle-blink-frame {
+    animation: none;
+    opacity: 0;
+  }
+  .dashboard-mascot[data-state] .dashboard-mascot-idle-primary-frame {
+    animation: none;
+    opacity: 1;
   }
 }

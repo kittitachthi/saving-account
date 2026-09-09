@@ -735,7 +735,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     );
     render(<App />);
     expect(screen.getByRole("button", { name: "รายรับ 100%" })).toHaveClass(
-      /incomeBar/,
+      /daily-cashflow-income-bar/,
     );
     expect(
       screen.queryByRole("button", { name: "รายจ่าย 0%" }),
@@ -761,7 +761,7 @@ describe("แดชบอร์ดการเงินประจำวัน"
     );
     render(<App />);
     expect(screen.getByRole("button", { name: "รายจ่าย 100%" })).toHaveClass(
-      /expenseBar/,
+      /daily-cashflow-expense-bar/,
     );
     expect(
       screen.queryByRole("button", { name: "รายรับ 0%" }),
