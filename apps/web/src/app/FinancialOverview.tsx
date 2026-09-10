@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import styles from "../App.module.css";
+import styles from "./FinancialOverview.module.css";
 
 export function FinancialOverview({
   displayName,
@@ -25,19 +25,23 @@ export function FinancialOverview({
   children: ReactNode;
 }) {
   return (
-    <main className={styles.main}>
-      <header className={styles.header}>
+    <main className={styles["financial-overview-main"]}>
+      <header className={styles["financial-overview-header"]}>
         <div>
-          <h1>สวัสดี, {displayName} 👋</h1>
-          <p>นี่คือภาพรวมการเงินของคุณในเดือนนี้</p>
+          <h1 className={styles["financial-overview-title"]}>
+            สวัสดี, {displayName} 👋
+          </h1>
+          <p className={styles["financial-overview-description"]}>
+            นี่คือภาพรวมการเงินของคุณในเดือนนี้
+          </p>
         </div>
         {(onWalletSharingOpenRequest ||
           onSavingsGoalEditRequest ||
           onTransactionCreateRequest) && (
-          <div className={styles.headerActions}>
+          <div className={styles["financial-overview-header-actions"]}>
             {onWalletSharingOpenRequest && (
               <button
-                className={styles.secondary}
+                className={styles["financial-overview-secondary-button"]}
                 onClick={onWalletSharingOpenRequest}
               >
                 ⇄ {walletSharingLabel}
@@ -45,7 +49,7 @@ export function FinancialOverview({
             )}
             {onSavingsGoalEditRequest && (
               <button
-                className={styles.secondary}
+                className={styles["financial-overview-secondary-button"]}
                 disabled={disabled}
                 onClick={onSavingsGoalEditRequest}
               >
@@ -54,7 +58,7 @@ export function FinancialOverview({
             )}
             {onTransactionCreateRequest && (
               <button
-                className={styles.primary}
+                className={styles["financial-overview-primary-button"]}
                 disabled={disabled}
                 onClick={onTransactionCreateRequest}
               >
@@ -66,7 +70,9 @@ export function FinancialOverview({
       </header>
       {notice}
       {summary}
-      <section className={styles.content}>{children}</section>
+      <section className={styles["financial-overview-content"]}>
+        {children}
+      </section>
     </main>
   );
 }

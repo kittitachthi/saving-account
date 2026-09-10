@@ -28,6 +28,7 @@ describe("Wallet sharing panel", () => {
         onWalletChange={vi.fn()}
         onAccessEnded={vi.fn()}
         onClose={vi.fn()}
+        walletRequest={async (path, options) => fetch(path, options)}
       />,
     );
     expect(
@@ -50,6 +51,7 @@ describe("Wallet sharing panel", () => {
         onWalletChange={vi.fn()}
         onAccessEnded={onAccessEnded}
         onClose={vi.fn()}
+        walletRequest={async (path, options) => fetch(path, options)}
       />,
     );
     expect(screen.getByText(/ดูได้อย่างเดียว/)).toBeInTheDocument();

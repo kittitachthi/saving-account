@@ -1,35 +1,11 @@
-.wallet-sharing-dialog {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 20px;
-  padding: 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  color: var(--color-text);
-  width: min(680px, 100%);
-  max-height: calc(100vh - 36px);
-  overflow: auto;
-}
-.wallet-sharing-header,
-.wallet-sharing-dialog form,
-.wallet-sharing-dialog div,
-.wallet-sharing-dialog label {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: space-between;
-}
-.wallet-sharing-dialog input,
-.wallet-sharing-dialog select,
-.wallet-sharing-dialog button {
-  min-height: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-control);
-  background: var(--color-surface);
-  color: var(--color-text);
-}
-.wallet-sharing-dialog button:focus-visible,
-.wallet-sharing-dialog a:focus-visible {
-  outline: var(--focus-ring);
-}
+.wallet-sharing-dialog{display:grid;gap:20px;width:min(720px,100%);max-height:min(780px,calc(100vh - 40px));overflow:auto;padding:clamp(20px,4vw,32px);border:1px solid var(--color-border);border-radius:var(--radius-dialog);background:var(--color-surface);color:var(--color-text);box-shadow:var(--shadow-overlay)}
+.wallet-sharing-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--color-border)}
+.wallet-sharing-heading,.wallet-sharing-owner-card,.wallet-sharing-list-row{display:flex;align-items:center;gap:14px}
+.wallet-sharing-heading h2,.wallet-sharing-section h3,.wallet-sharing-heading p,.wallet-sharing-section-heading p,.wallet-sharing-owner-details span,.wallet-sharing-list-details span,.wallet-sharing-list-details small{margin:0}
+.wallet-sharing-heading h2{font-size:1.2rem}.wallet-sharing-heading p,.wallet-sharing-section-heading p,.wallet-sharing-list-details span,.wallet-sharing-list-details small{color:var(--color-text-muted);font-size:.88rem}
+.wallet-sharing-heading-icon,.wallet-sharing-owner-avatar,.wallet-sharing-viewer-avatar{display:grid;place-items:center;flex:0 0 auto;border-radius:50%}.wallet-sharing-heading-icon{width:42px;height:42px;background:var(--color-accent-soft);color:var(--color-accent);font-size:1.3rem}.wallet-sharing-close-button{width:40px;height:40px;border:0;border-radius:50%;background:var(--color-surface-subtle);color:var(--color-text-muted);font-size:1.5rem;cursor:pointer}.wallet-sharing-close-button:hover{background:var(--color-border);color:var(--color-text)}
+.wallet-sharing-wallet-field,.wallet-sharing-email-field{display:grid;gap:7px;color:var(--color-text-muted);font-size:.86rem;font-weight:600}.wallet-sharing-wallet-field select,.wallet-sharing-email-field input{width:100%;min-height:44px;padding:0 12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface-subtle);color:var(--color-text);font:inherit}.wallet-sharing-wallet-field select:focus,.wallet-sharing-email-field input:focus{border-color:var(--color-accent);outline:3px solid var(--color-focus)}
+.wallet-sharing-owner-content,.wallet-sharing-viewer-content{display:grid;gap:14px}.wallet-sharing-section,.wallet-sharing-owner-card{padding:18px;border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface-subtle)}.wallet-sharing-section{display:grid;gap:14px}.wallet-sharing-section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.wallet-sharing-section-heading>div{display:grid;gap:5px}.wallet-sharing-export-link{color:var(--color-accent);font-size:.88rem;font-weight:700;text-decoration:none;white-space:nowrap}.wallet-sharing-export-link:hover{text-decoration:underline}
+.wallet-sharing-invitation-form{display:flex;align-items:end;gap:10px}.wallet-sharing-email-field{flex:1}.wallet-sharing-invite-button,.wallet-sharing-leave-button{min-height:44px;padding:0 16px;border:0;border-radius:var(--radius-control);background:var(--color-accent);color:var(--color-on-accent);font:inherit;font-weight:700;cursor:pointer}.wallet-sharing-invite-button:hover,.wallet-sharing-leave-button:hover{filter:brightness(.94)}.wallet-sharing-list{display:grid;gap:8px}.wallet-sharing-list-row{justify-content:space-between;padding:12px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface)}.wallet-sharing-list-details{display:grid;gap:3px;min-width:0}.wallet-sharing-list-details strong{overflow-wrap:anywhere}.wallet-sharing-owner-avatar,.wallet-sharing-viewer-avatar{width:44px;height:44px;background:var(--color-accent-soft);color:var(--color-accent);font-weight:800}.wallet-sharing-owner-details{display:grid;gap:3px;min-width:0;flex:1}.wallet-sharing-owner-label{font-size:.8rem;color:var(--color-text-muted)}.wallet-sharing-readonly-badge{padding:5px 9px;border-radius:999px;background:var(--color-saving-soft);color:var(--color-saving);font-size:.78rem;font-weight:700;white-space:nowrap}.wallet-sharing-privacy-note{margin:0;padding:11px 13px;border-radius:var(--radius-control);background:var(--color-accent-soft);color:var(--color-text-muted);font-size:.86rem}.wallet-sharing-status-message{margin:0;color:var(--color-saving);font-size:.88rem}.wallet-sharing-empty-message{margin:0;color:var(--color-text-muted);font-size:.9rem}.wallet-sharing-cancel-button,.wallet-sharing-revoke-button{min-height:36px;padding:0 11px;border:1px solid var(--color-border);border-radius:var(--radius-control);background:transparent;color:var(--color-expense);font:inherit;font-size:.82rem;font-weight:700;cursor:pointer}.wallet-sharing-cancel-button:hover,.wallet-sharing-revoke-button:hover{background:var(--color-expense-soft)}.wallet-sharing-dialog button:focus-visible,.wallet-sharing-dialog a:focus-visible{outline:var(--focus-ring);outline-offset:2px}
+@media (max-width:560px){.wallet-sharing-dialog{align-self:end;max-height:calc(100vh - 16px);padding:20px 16px 24px;border-radius:var(--radius-dialog) var(--radius-dialog) 0 0}.wallet-sharing-section-heading,.wallet-sharing-invitation-form{display:grid;align-items:stretch}.wallet-sharing-export-link{white-space:normal}.wallet-sharing-list-row{align-items:flex-start}.wallet-sharing-cancel-button,.wallet-sharing-revoke-button{align-self:center}}
+@media (prefers-reduced-motion:reduce){.wallet-sharing-dialog *,.wallet-sharing-dialog *::before,.wallet-sharing-dialog *::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}

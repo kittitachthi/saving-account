@@ -616,6 +616,28 @@ export class WalletRepository {
     });
   }
 
+  async walletInvitationPreview(email: string, tokenHash: string, now: Date) {
+    const invitation = await this.client.walletInvitation.findUnique({
+      where: { tokenHash },
+      include: { wallet: { include: { owner: true } } },
+    });
+    if (
+      !invitation ||
+      invitation.status !== "PENDING" ||
+      invitation.expiresAt <= now ||
+      invitation.email !== email
+    )
+      throw new WalletAccessError("INVITATION_INVALID");
+    return {
+      walletName: invitation.wallet.name,
+      owner: {
+        displayName: invitation.wallet.owner.displayName,
+        email: invitation.wallet.owner.email,
+      },
+      expiresAt: invitation.expiresAt.toISOString(),
+    };
+  }
+
   async walletViewerRevoke(userId: string, walletId: string, viewerId: string) {
     await this.client.$transaction(async (tx) => {
       const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);

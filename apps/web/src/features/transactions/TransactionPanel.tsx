@@ -23,6 +23,7 @@ type Props = {
   onTransactionPageChange: (page: number) => void;
   serverPagination?: { page: number; totalPages: number };
   moneyUnit?: MoneyUnit;
+  showUpdatedAt?: boolean;
 };
 export function TransactionPanel({
   transactions,
@@ -37,6 +38,7 @@ export function TransactionPanel({
   onTransactionPageChange,
   serverPagination,
   moneyUnit = "baht",
+  showUpdatedAt = false,
 }: Props) {
   const [transactionActionsOpenId, setTransactionActionsOpenId] = useState<
     Transaction["id"] | null
@@ -106,6 +108,11 @@ export function TransactionPanel({
                     ? transactionDateFormat(item.createdAt, now)
                     : item.date}
               </small>
+              {showUpdatedAt && item.updatedAt && (
+                <small className={styles["transaction-metadata"]}>
+                  แก้ไขล่าสุด {new Date(item.updatedAt).toLocaleString("th-TH")}
+                </small>
+              )}
             </div>
             <strong
               className={`${styles["transaction-amount"]} ${styles[`transaction-${item.type}-amount`]}`}

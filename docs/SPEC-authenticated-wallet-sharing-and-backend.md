@@ -1,4 +1,4 @@
-# Spec: ระบบบัญชี กระเป๋าออนไลน์ และการแชร์แบบอ่านอย่างเดียว
+﻿# Spec: ระบบบัญชี กระเป๋าออนไลน์ และการแชร์แบบอ่านอย่างเดียว
 
 ## Problem Statement
 
@@ -58,28 +58,28 @@
 42. As an Owner, I want “จัดการการแชร์” beside the Savings Goal action, so that I can find Wallet switching, export, invitations, and Viewers in one place.
 43. As a Viewer, I want the same action to be labelled “ข้อมูล Wallet ที่แชร์”, so that I do not mistake read-only information for permission management.
 44. As a user, I want the sharing dialog to close with its close button, Escape, or backdrop and restore focus, so that it behaves like the application's established dialogs.
-41. As a user with existing device data, I want to review the type and count of local data before import, so that sign-in does not upload it unexpectedly.
-42. As a user with existing device data, I want to choose between importing and starting fresh, so that I control migration to my Personal Wallet.
-43. As a user importing device data, I want retries to avoid duplicate Transactions and Savings Goals, so that network errors do not corrupt totals.
-44. As a user importing device data, I want invalid items reported without silently changing their meaning, so that I can understand what was not migrated.
-45. As a user who completed import, I want the device marked as imported without exposing financial details, so that I am not repeatedly prompted.
-46. As a beta tester, I want to read and accept the current Beta Privacy Notice before accessing finances, so that I understand how the beta handles my data.
-47. As a beta tester, I want material notice changes to require fresh consent, so that my earlier consent is not applied to new terms silently.
-48. As a beta tester who declines the notice, I want access limited to explanation, logout, and Account Deletion, so that no financial data is created or shown.
-49. As a beta tester, I want advance notice before a planned Beta Data Reset, so that I can export data I own.
-50. As a user, I want a warning that Web/PWA cannot guarantee screenshot prevention, so that I can make an informed sharing decision.
-51. As a Viewer, I want shared financial screens watermarked and obscured when the app backgrounds where supported, so that casual disclosure is discouraged.
-52. As a user, I want to request Account Deletion only after confirming its consequences, so that destructive action is deliberate.
-53. As a user who requested deletion, I want access and sharing disabled immediately, so that pending data is not still exposed.
-54. As a user in Pending Deletion, I want 30 days to recover through the same Google Account, so that an accidental deletion can be reversed.
-55. As a user in Pending Deletion, I want financial routes blocked until recovery completes, so that the deletion state is enforced consistently.
-56. As a user whose recovery period ended, I want my account, owned Wallets, financial data, Sessions, Memberships, and Invitations deleted consistently, so that deletion is complete.
-57. As a developer, I want one documented command surface from the repository root, so that format, lint, typecheck, tests, and builds are repeatable.
-58. As a developer, I want local development to proxy `/api` to Express, so that cookie and routing behavior resembles production.
-59. As an operator, I want validated environment configuration and fail-fast startup, so that a deployment with missing security settings cannot start silently.
-60. As an operator, I want health and readiness endpoints that reveal no secrets, so that the service can be monitored safely.
-61. As an operator, I want durable retryable email and deletion jobs, so that infrastructure failures do not undo successful user actions or lose required work.
-62. As an operator, I want structured logs without tokens, cookies, or financial details, so that incidents can be diagnosed without creating another data leak.
+45. As a user with existing device data, I want to review the type and count of local data before import, so that sign-in does not upload it unexpectedly.
+46. As a user with existing device data, I want to choose between importing and starting fresh, so that I control migration to my Personal Wallet.
+47. As a user importing device data, I want retries to avoid duplicate Transactions and Savings Goals, so that network errors do not corrupt totals.
+48. As a user importing device data, I want invalid items reported without silently changing their meaning, so that I can understand what was not migrated.
+49. As a user who completed import, I want the device marked as imported without exposing financial details, so that I am not repeatedly prompted.
+50. As a beta tester, I want to read and accept the current Beta Privacy Notice before accessing finances, so that I understand how the beta handles my data.
+51. As a beta tester, I want material notice changes to require fresh consent, so that my earlier consent is not applied to new terms silently.
+52. As a beta tester who declines the notice, I want access limited to explanation, logout, and Account Deletion, so that no financial data is created or shown.
+53. As a beta tester, I want advance notice before a planned Beta Data Reset, so that I can export data I own.
+54. As a user, I want a warning that Web/PWA cannot guarantee screenshot prevention, so that I can make an informed sharing decision.
+55. As a Viewer, I want shared financial screens watermarked and obscured when the app backgrounds where supported, so that casual disclosure is discouraged.
+56. As a user, I want to request Account Deletion only after confirming its consequences, so that destructive action is deliberate.
+57. As a user who requested deletion, I want access and sharing disabled immediately, so that pending data is not still exposed.
+58. As a user in Pending Deletion, I want 30 days to recover through the same Google Account, so that an accidental deletion can be reversed.
+59. As a user in Pending Deletion, I want financial routes blocked until recovery completes, so that the deletion state is enforced consistently.
+60. As a user whose recovery period ended, I want my account, owned Wallets, financial data, Sessions, Memberships, and Invitations deleted consistently, so that deletion is complete.
+61. As a developer, I want one documented command surface from the repository root, so that format, lint, typecheck, tests, and builds are repeatable.
+62. As a developer, I want local development to proxy `/api` to Express, so that cookie and routing behavior resembles production.
+63. As an operator, I want validated environment configuration and fail-fast startup, so that a deployment with missing security settings cannot start silently.
+64. As an operator, I want health and readiness endpoints that reveal no secrets, so that the service can be monitored safely.
+65. As an operator, I want durable retryable email and deletion jobs, so that infrastructure failures do not undo successful user actions or lose required work.
+66. As an operator, I want structured logs without tokens, cookies, or financial details, so that incidents can be diagnosed without creating another data leak.
 
 ## Implementation Decisions
 

@@ -119,6 +119,16 @@ describe("Wallet sharing through HTTP and PostgreSQL", () => {
       (invitationJob.payload as { invitationUrl: string }).invitationUrl,
     ).searchParams.get("invitation");
     expect(token).toBeTruthy();
+    const preview = await request(app)
+      .post("/api/wallets/invitations/preview")
+      .set(trusted)
+      .set("Cookie", cookies[1])
+      .send({ token })
+      .expect(200);
+    expect(preview.body).toMatchObject({
+      walletName: "Shared money",
+      owner: { email: expect.any(String) },
+    });
     const accepts = await Promise.all([
       request(app)
         .post("/api/wallets/invitations/accept")

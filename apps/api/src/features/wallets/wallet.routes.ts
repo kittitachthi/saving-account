@@ -107,7 +107,7 @@ export function walletRoutesRegister(
     response.json(await repository.walletList(response.locals.userId));
   });
   app.post(
-    "/api/wallets/invitations/accept",
+    "/api/wallets/invitations/preview",
     mutationCsrfGuard,
     async (request, response) => {
       const parsed = z
@@ -120,6 +120,42 @@ export function walletRoutesRegister(
           .json({
             error: { code: "BAD_REQUEST", message: "Invalid invitation" },
           });
+        return;
+      }
+      try {
+        response.json(
+          await repository.walletInvitationPreview(
+            response.locals.userEmail,
+            createHash("sha256").update(parsed.data.token).digest("hex"),
+            now(),
+          ),
+        );
+      } catch (error) {
+        if (
+          error instanceof WalletAccessError &&
+          error.code === "INVITATION_INVALID"
+        ) {
+          response
+            .status(410)
+            .json({ error: { code: error.code, message: error.code } });
+          return;
+        }
+        throw error;
+      }
+    },
+  );
+  app.post(
+    "/api/wallets/invitations/accept",
+    mutationCsrfGuard,
+    async (request, response) => {
+      const parsed = z
+        .object({ token: z.string().min(32).max(500) })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success) {
+        response.status(400).json({
+          error: { code: "BAD_REQUEST", message: "Invalid invitation" },
+        });
         return;
       }
       try {
@@ -260,11 +296,9 @@ export function walletRoutesRegister(
     walletIdValidate,
     async (request, response) => {
       if (!z.uuid().safeParse(request.params.invitationId).success) {
-        response
-          .status(400)
-          .json({
-            error: { code: "BAD_REQUEST", message: "Invalid invitation" },
-          });
+        response.status(400).json({
+          error: { code: "BAD_REQUEST", message: "Invalid invitation" },
+        });
         return;
       }
       await repository.walletInvitationCancel(

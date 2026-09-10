@@ -39,6 +39,7 @@ export function OnlineWallet({
     document.visibilityState !== "visible",
   );
   const [sharingOpen, setSharingOpen] = useState(false);
+  const [actionError, setActionError] = useState("");
   const sharingTrigger = useRef<HTMLElement | null>(null);
   const wallet = useWallet(walletId, onSessionEnded, onPrivacyRequired);
   useEffect(() => {
@@ -47,19 +48,33 @@ export function OnlineWallet({
     );
     void (async () => {
       if (invitation) {
-        if (
-          window.confirm(
-            "ตรวจคำเชิญและยอมรับการดู Wallet แบบอ่านอย่างเดียวหรือไม่?",
-          )
-        ) {
-          const response = await authenticatedRequest(
-            "/api/wallets/invitations/accept",
+        try {
+          const previewResponse = await authenticatedRequest(
+            "/api/wallets/invitations/preview",
             { method: "POST", body: JSON.stringify({ token: invitation }) },
           );
-          const accepted = (await response.json()) as { walletId: string };
-          setWalletId(accepted.walletId);
+          const preview = (await previewResponse.json()) as {
+            walletName: string;
+            owner: { displayName: string; email: string };
+          };
+          if (
+            window.confirm(
+              `ยอมรับคำเชิญดู Wallet “${preview.walletName}” แบบอ่านอย่างเดียวจาก ${preview.owner.displayName} (${preview.owner.email}) หรือไม่?`,
+            )
+          ) {
+            const response = await authenticatedRequest(
+              "/api/wallets/invitations/accept",
+              { method: "POST", body: JSON.stringify({ token: invitation }) },
+            );
+            const accepted = (await response.json()) as { walletId: string };
+            setWalletId(accepted.walletId);
+            window.history.replaceState({}, "", window.location.pathname);
+          }
+        } catch {
+          setActionError(
+            "เปิดคำเชิญไม่ได้ คำเชิญอาจหมดอายุ ถูกยกเลิก ใช้แล้ว หรือไม่ตรงกับบัญชีนี้",
+          );
         }
-        window.history.replaceState({}, "", window.location.pathname);
       }
     })();
   }, []);
@@ -80,7 +95,6 @@ export function OnlineWallet({
     operationId: string;
   } | null>(null);
   const [deleteError, setDeleteError] = useState("");
-  const [actionError, setActionError] = useState("");
   const [undo, setUndo] = useState<{
     id: string;
     operationId: string;
@@ -153,7 +167,7 @@ export function OnlineWallet({
             }
             disabled={wallet.busy}
             notice={
-              <div className={styles.notice}>
+              <div className={styles["online-wallet-status-notice"]}>
                 <p>
                   {owner
                     ? "กระเป๋าส่วนตัว"
@@ -188,6 +202,7 @@ export function OnlineWallet({
           >
             <TransactionPanel
               moneyUnit="satang"
+              showUpdatedAt={!owner}
               transactions={view.transactions}
               filter={wallet.filter}
               onTransactionFilterChange={wallet.transactionFilterChange}
@@ -238,7 +253,7 @@ export function OnlineWallet({
           </FinancialOverview>
         </div>
       ) : (
-        <main className={styles.loading}>
+        <main className={styles["online-wallet-loading-container"]}>
           {wallet.error ? (
             <>
               <p role="alert">{wallet.error}</p>
@@ -365,6 +380,7 @@ export function OnlineWallet({
             setSharingOpen(false);
             queueMicrotask(() => sharingTrigger.current?.focus());
           }}
+          walletRequest={authenticatedRequest}
         />
       )}
       {settingsOpen && (

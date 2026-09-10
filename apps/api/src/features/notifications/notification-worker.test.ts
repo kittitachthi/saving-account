@@ -36,7 +36,7 @@ function setup(send = vi.fn().mockResolvedValue(undefined)) {
 describe("notification worker", () => {
   it("sends an approved Beta invitation and marks it sent", async () => {
     const { worker, send, notificationOutbox } = setup();
-    expect(await worker.processNext()).toBe(true);
+    expect(await worker.notificationDeliveryProcessNext()).toBe(true);
     expect(send).toHaveBeenCalledWith(
       expect.objectContaining({
         messageId: `<${job.id}@notifications.pocka.local>`,
@@ -55,7 +55,7 @@ describe("notification worker", () => {
     const { worker, notificationOutbox } = setup(
       vi.fn().mockRejectedValue(new Error("SMTP unavailable")),
     );
-    expect(await worker.processNext()).toBe(true);
+    expect(await worker.notificationDeliveryProcessNext()).toBe(true);
     expect(notificationOutbox.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

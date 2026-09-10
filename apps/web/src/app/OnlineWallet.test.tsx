@@ -635,3 +635,36 @@ it("opens Wallet sharing from the header and restores trigger focus", async () =
   fireEvent.click(screen.getByRole("button", { name: "ปิดข้อมูลการแชร์" }));
   await waitFor(() => expect(trigger).toHaveFocus());
 });
+
+it("labels shared Wallet information and shows Viewer edit timestamps without mutation controls", async () => {
+  const api = server();
+  api.setSnapshot({
+    ...emptyWallet(),
+    wallet: {
+      ...emptyWallet().wallet,
+      role: "viewer",
+      owner: { displayName: "Wallet Owner", email: "wallet-owner@example.com" },
+    },
+    transactions: [
+      {
+        id: "shared-transaction",
+        title: "Shared income",
+        category: "Work",
+        type: "income",
+        amount: 100,
+        occurredOn: "2026-09-10",
+        occurredTime: null,
+        createdAt: "2026-09-10T01:00:00.000Z",
+        updatedAt: "2026-09-10T02:00:00.000Z",
+      },
+    ],
+  });
+  render(<Application />);
+  expect(
+    await screen.findByRole("button", { name: /ข้อมูล Wallet ที่แชร์/ }),
+  ).toBeInTheDocument();
+  expect(screen.getByText(/แก้ไขล่าสุด/)).toBeInTheDocument();
+  expect(
+    screen.queryByRole("button", { name: /เพิ่มรายการ/ }),
+  ).not.toBeInTheDocument();
+});

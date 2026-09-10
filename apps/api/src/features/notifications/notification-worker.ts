@@ -25,7 +25,7 @@ export function createNotificationWorker({
   let timer: NodeJS.Timeout | undefined;
   let working = false;
 
-  async function processNext() {
+  async function notificationDeliveryProcessNext() {
     if (working) return false;
     working = true;
     try {
@@ -117,12 +117,12 @@ export function createNotificationWorker({
   }
 
   return {
-    processNext,
+    notificationDeliveryProcessNext,
     start() {
       if (timer) return;
-      timer = setInterval(() => void processNext(), 10_000);
+      timer = setInterval(() => void notificationDeliveryProcessNext(), 10_000);
       timer.unref();
-      void processNext();
+      void notificationDeliveryProcessNext();
     },
     stop() {
       if (timer) clearInterval(timer);
