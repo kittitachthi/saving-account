@@ -52,16 +52,33 @@ export function createNotificationWorker({
       if (claimed.count !== 1) return false;
 
       try {
-        if (candidate.kind !== "BETA_APPROVED") {
-          throw new Error("Unsupported notification kind");
-        }
-        await transport.send({
+        const payload = candidate.payload as Record<string, string>;
+        const common = {
           messageId: `<${candidate.id}@notifications.pocka.local>`,
           to: candidate.recipientEmail,
-          subject: "คุณได้รับสิทธิ์ทดลองใช้ Pocka แล้ว",
-          text: `ยินดีต้อนรับสู่ Pocka คุณสามารถเข้าสู่ระบบด้วย Google ได้ที่ ${appOrigin}`,
-          html: `<h1>ยินดีต้อนรับสู่ Pocka</h1><p>คำขอเข้าร่วม Private Beta ของคุณได้รับการอนุมัติแล้ว</p><p><a href="${appOrigin}">เข้าสู่ระบบด้วย Google</a></p>`,
-        });
+        };
+        const message =
+          candidate.kind === "BETA_APPROVED"
+            ? {
+                ...common,
+                subject: "คุณได้รับสิทธิ์ทดลองใช้ Pocka แล้ว",
+                text: `ยินดีต้อนรับสู่ Pocka คุณสามารถเข้าสู่ระบบด้วย Google ได้ที่ ${appOrigin}`,
+                html: `<h1>ยินดีต้อนรับสู่ Pocka</h1><p>คำขอเข้าร่วม Private Beta ของคุณได้รับการอนุมัติแล้ว</p><p><a href="${appOrigin}">เข้าสู่ระบบด้วย Google</a></p>`,
+              }
+            : candidate.kind === "WALLET_INVITATION"
+              ? {
+                  ...common,
+                  subject: "คำเชิญดู Wallet บน Pocka",
+                  text: `คุณได้รับคำเชิญดู Wallet ${payload.walletName} แบบอ่านอย่างเดียว: ${payload.invitationUrl}`,
+                  html: `<p>คุณได้รับคำเชิญดู Wallet แบบอ่านอย่างเดียว</p><p><a href="${payload.invitationUrl}">ตรวจและยอมรับคำเชิญ</a></p>`,
+                }
+              : {
+                  ...common,
+                  subject: "การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง",
+                  text: `สิทธิ์ของ ${payload.viewerEmail} เปลี่ยนแปลง: ${payload.action}`,
+                  html: "<p>สิทธิ์การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง</p>",
+                };
+        await transport.send(message);
         await client.notificationOutbox.update({
           where: { id: candidate.id },
           data: {

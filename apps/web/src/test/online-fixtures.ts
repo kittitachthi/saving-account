@@ -9,7 +9,13 @@ export function emptyWallet(): WalletSnapshot {
     day: "2-digit",
   }).format(new Date());
   return {
-    wallet: { id: "wallet", name: "กระเป๋าของฉัน", timezone: "Asia/Bangkok" },
+    wallet: {
+      id: "wallet",
+      name: "กระเป๋าของฉัน",
+      timezone: "Asia/Bangkok",
+      role: "owner",
+      owner: { displayName: "Owner", email: "owner@example.com" },
+    },
     today,
     nextDayAt: new Date(
       Date.parse(`${today}T00:00:00+07:00`) + 86400000,

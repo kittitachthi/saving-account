@@ -4,10 +4,10 @@
 
 **Blocked by:** 17: เชิญ Viewer และเปิด Wallet แบบอ่านอย่างเดียว.
 
-**Status:** ready-for-agent
+**Status:** complete
 
 **Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
 
-- [ ] แสดงคำเชิญและสถานะที่มีสิทธิ์ดูเท่านั้น
-- [ ] cancel/expire/used token รับสิทธิ์ซ้ำไม่ได้
-- [ ] ทดสอบ accept แข่งกับ cancel และผลที่ผู้ใช้เห็น
+- [x] แสดงคำเชิญและสถานะที่มีสิทธิ์ดูเท่านั้น
+- [x] cancel/expire/used token รับสิทธิ์ซ้ำไม่ได้
+- [x] ทดสอบ accept แข่งกับ cancel และผลที่ผู้ใช้เห็น

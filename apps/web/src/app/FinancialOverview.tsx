@@ -6,6 +6,8 @@ export function FinancialOverview({
   hasGoal,
   onSavingsGoalEditRequest,
   onTransactionCreateRequest,
+  onWalletSharingOpenRequest,
+  walletSharingLabel,
   disabled,
   notice,
   summary,
@@ -13,8 +15,10 @@ export function FinancialOverview({
 }: {
   displayName: string;
   hasGoal: boolean;
-  onSavingsGoalEditRequest: () => void;
-  onTransactionCreateRequest: () => void;
+  onSavingsGoalEditRequest?: () => void;
+  onTransactionCreateRequest?: () => void;
+  onWalletSharingOpenRequest?: () => void;
+  walletSharingLabel?: string;
   disabled?: boolean;
   notice?: ReactNode;
   summary: ReactNode;
@@ -27,22 +31,38 @@ export function FinancialOverview({
           <h1>สวัสดี, {displayName} 👋</h1>
           <p>นี่คือภาพรวมการเงินของคุณในเดือนนี้</p>
         </div>
-        <div className={styles.headerActions}>
-          <button
-            className={styles.secondary}
-            disabled={disabled}
-            onClick={onSavingsGoalEditRequest}
-          >
-            ◎ {hasGoal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมายเงินเก็บ"}
-          </button>
-          <button
-            className={styles.primary}
-            disabled={disabled}
-            onClick={onTransactionCreateRequest}
-          >
-            ＋ เพิ่มรายการ
-          </button>
-        </div>
+        {(onWalletSharingOpenRequest ||
+          onSavingsGoalEditRequest ||
+          onTransactionCreateRequest) && (
+          <div className={styles.headerActions}>
+            {onWalletSharingOpenRequest && (
+              <button
+                className={styles.secondary}
+                onClick={onWalletSharingOpenRequest}
+              >
+                ⇄ {walletSharingLabel}
+              </button>
+            )}
+            {onSavingsGoalEditRequest && (
+              <button
+                className={styles.secondary}
+                disabled={disabled}
+                onClick={onSavingsGoalEditRequest}
+              >
+                ◎ {hasGoal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมายเงินเก็บ"}
+              </button>
+            )}
+            {onTransactionCreateRequest && (
+              <button
+                className={styles.primary}
+                disabled={disabled}
+                onClick={onTransactionCreateRequest}
+              >
+                ＋ เพิ่มรายการ
+              </button>
+            )}
+          </div>
+        )}
       </header>
       {notice}
       {summary}

@@ -48,7 +48,14 @@ export type WalletCategory = {
   average: number;
 };
 export type WalletSnapshot = {
-  wallet: { id: string; name: string; timezone: string };
+  wallet: {
+    id: string;
+    name: string;
+    timezone: string;
+    role: "owner" | "viewer";
+    owner: { displayName: string; email: string };
+  };
+  availableWallets?: WalletSummary[];
   today: string;
   nextDayAt: string;
   transactions: WalletTransaction[];
@@ -65,6 +72,20 @@ export type WalletSnapshot = {
   expenseCategories: WalletCategory[];
   savingsCategories: WalletCategory[];
   goal: number | null;
+};
+
+export type WalletSummary = WalletSnapshot["wallet"];
+export type WalletInvitation = {
+  id: string;
+  email: string;
+  status: "pending" | "expired";
+  expiresAt: string;
+};
+export type WalletViewer = {
+  userId: string;
+  displayName: string;
+  email: string;
+  lastViewedAt: string | null;
 };
 export type EditWalletTransaction = Omit<
   CreateWalletTransaction,

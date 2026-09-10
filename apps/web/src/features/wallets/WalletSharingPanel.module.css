@@ -1,0 +1,35 @@
+.wallet-sharing-dialog {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: min(680px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow: auto;
+}
+.wallet-sharing-header,
+.wallet-sharing-dialog form,
+.wallet-sharing-dialog div,
+.wallet-sharing-dialog label {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+}
+.wallet-sharing-dialog input,
+.wallet-sharing-dialog select,
+.wallet-sharing-dialog button {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.wallet-sharing-dialog button:focus-visible,
+.wallet-sharing-dialog a:focus-visible {
+  outline: var(--focus-ring);
+}

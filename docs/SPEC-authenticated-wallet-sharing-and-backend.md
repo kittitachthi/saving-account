@@ -54,6 +54,10 @@
 38. As an Owner, I want to see a Viewer's approximate Last Viewed At value, so that I understand whether the shared Wallet is being opened.
 39. As a Viewer, I want Last Viewed At to remain coarse and limited to Wallet access, so that the application does not build a page-level viewing history.
 40. As an email recipient, I want Security Notifications to exclude Money Amounts and Transaction details, so that email does not leak financial data.
+41. As an Owner, I want Wallet sharing controls behind a clear header action, so that sharing management does not permanently occupy dashboard space.
+42. As an Owner, I want “จัดการการแชร์” beside the Savings Goal action, so that I can find Wallet switching, export, invitations, and Viewers in one place.
+43. As a Viewer, I want the same action to be labelled “ข้อมูล Wallet ที่แชร์”, so that I do not mistake read-only information for permission management.
+44. As a user, I want the sharing dialog to close with its close button, Escape, or backdrop and restore focus, so that it behaves like the application's established dialogs.
 41. As a user with existing device data, I want to review the type and count of local data before import, so that sign-in does not upload it unexpectedly.
 42. As a user with existing device data, I want to choose between importing and starting fresh, so that I control migration to my Personal Wallet.
 43. As a user importing device data, I want retries to avoid duplicate Transactions and Savings Goals, so that network errors do not corrupt totals.
@@ -94,6 +98,10 @@
 - Wallet Membership มี role `owner` หรือ `viewer`; Viewer อ่านข้อมูลล่าสุดทั้งหมดที่ได้รับสิทธิ์แต่สร้าง แก้ไข ลบ และ export ไม่ได้
 - Wallet Invitation ระบุ normalized email, หมดอายุเจ็ดวัน, มี random single-use token และ persist เฉพาะ token hash; การ accept ต้องตรวจ Google verified email และผูก Membership กับ `userId`
 - การ revoke หรือ leave Membership มีผลทันทีต่อ authorization; `lastViewedAt` เก็บเพียงค่าล่าสุดและ update แบบ throttle/coalesce
+- Dashboard ไม่แสดง Wallet Sharing เป็นการ์ดถาวร แต่ใช้ header action ทางซ้ายของ Savings Goal action เพื่อเปิด dialog
+- Owner เห็น action ชื่อ “จัดการการแชร์”; Viewer เห็น “ข้อมูล Wallet ที่แชร์” เพื่อสื่อข้อจำกัดของ role อย่างตรงไปตรงมา
+- dialog เป็นจุดเดียวสำหรับสลับ Personal/Shared Wallet และแสดงคำสั่งตาม role: Owner จัดการ export, invitations และ Viewers; Viewer เห็น Owner, คำเตือน และ leave
+- sharing dialog ใช้พฤติกรรม accessibility เดิมของ application: ปุ่มปิด, Escape, backdrop dismissal และคืน focus ไปยัง trigger
 - รองรับ THB เท่านั้น เงินใน persistence, API และการคำนวณเป็น integer satang; presentation layer รับผิดชอบ format เป็นบาท
 - Wallet Timezone รุ่นแรกเป็น `Asia/Bangkok`; timestamps จัดเก็บเป็น UTC ขณะที่ Transaction มี `occurredOn` บังคับและ `occurredTime` ที่ nullable สำหรับการแสดงและจัดกลุ่มรายงาน
 - การเรียง Transaction ภายในวันต้อง deterministic โดยใช้ occurred time, created time และ id ตามกฎเดียวกันทั้ง API และ UI; รายการไม่มีเวลาต้องไม่ถูกแสดงเป็นเที่ยงคืน

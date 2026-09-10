@@ -1,5 +1,6 @@
 import type { Express, RequestHandler } from "express";
 import { z } from "zod";
+import { createHash, randomBytes } from "node:crypto";
 import type { AuthService } from "../auth/auth.service.js";
 import { readSessionToken } from "../auth/auth.routes.js";
 import { requireSameOriginMutation } from "../auth/csrf.js";
@@ -64,6 +65,7 @@ export function walletRoutesRegister(
       return;
     }
     response.locals.userId = session.user.id;
+    response.locals.userEmail = session.user.email.toLowerCase();
     next();
   };
   app.use(["/api/privacy", "/api/wallets"], authenticatedRequestGuard);
@@ -101,6 +103,48 @@ export function walletRoutesRegister(
     }
     next();
   };
+  app.get("/api/wallets", async (_request, response) => {
+    response.json(await repository.walletList(response.locals.userId));
+  });
+  app.post(
+    "/api/wallets/invitations/accept",
+    mutationCsrfGuard,
+    async (request, response) => {
+      const parsed = z
+        .object({ token: z.string().min(32).max(500) })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success) {
+        response
+          .status(400)
+          .json({
+            error: { code: "BAD_REQUEST", message: "Invalid invitation" },
+          });
+        return;
+      }
+      try {
+        response.json(
+          await repository.walletInvitationAccept(
+            response.locals.userId,
+            response.locals.userEmail,
+            createHash("sha256").update(parsed.data.token).digest("hex"),
+            now(),
+          ),
+        );
+      } catch (error) {
+        if (
+          error instanceof WalletAccessError &&
+          error.code === "INVITATION_INVALID"
+        ) {
+          response
+            .status(410)
+            .json({ error: { code: error.code, message: error.code } });
+          return;
+        }
+        throw error;
+      }
+    },
+  );
   app.get(
     "/api/wallets/:walletId",
     walletIdValidate,
@@ -150,6 +194,117 @@ export function walletRoutesRegister(
             parsed.data,
           ),
         );
+    },
+  );
+  app.get(
+    "/api/wallets/:walletId/export",
+    walletIdValidate,
+    async (request, response) => {
+      const walletId = String(request.params.walletId);
+      response.setHeader(
+        "Content-Disposition",
+        `attachment; filename="pocka-wallet-${walletId}.json"`,
+      );
+      response.json(
+        await repository.walletExport(response.locals.userId, walletId),
+      );
+    },
+  );
+  app.get(
+    "/api/wallets/:walletId/sharing",
+    walletIdValidate,
+    async (request, response) => {
+      response.json(
+        await repository.walletSharingOverview(
+          response.locals.userId,
+          String(request.params.walletId),
+          now(),
+        ),
+      );
+    },
+  );
+  app.post(
+    "/api/wallets/:walletId/invitations",
+    mutationCsrfGuard,
+    walletIdValidate,
+    async (request, response) => {
+      const parsed = z
+        .object({ email: z.email().max(320) })
+        .strict()
+        .safeParse(request.body);
+      if (!parsed.success) {
+        response
+          .status(400)
+          .json({ error: { code: "BAD_REQUEST", message: "Invalid email" } });
+        return;
+      }
+      const token = randomBytes(32).toString("base64url");
+      response
+        .status(201)
+        .json(
+          await repository.walletInvitationCreate(
+            response.locals.userId,
+            String(request.params.walletId),
+            parsed.data.email.trim().toLowerCase(),
+            createHash("sha256").update(token).digest("hex"),
+            token,
+            appOrigin,
+            now(),
+          ),
+        );
+    },
+  );
+  app.delete(
+    "/api/wallets/:walletId/invitations/:invitationId",
+    mutationCsrfGuard,
+    walletIdValidate,
+    async (request, response) => {
+      if (!z.uuid().safeParse(request.params.invitationId).success) {
+        response
+          .status(400)
+          .json({
+            error: { code: "BAD_REQUEST", message: "Invalid invitation" },
+          });
+        return;
+      }
+      await repository.walletInvitationCancel(
+        response.locals.userId,
+        String(request.params.walletId),
+        String(request.params.invitationId),
+        now(),
+      );
+      response.status(204).end();
+    },
+  );
+  app.delete(
+    "/api/wallets/:walletId/viewers/:viewerId",
+    mutationCsrfGuard,
+    walletIdValidate,
+    async (request, response) => {
+      if (!z.uuid().safeParse(request.params.viewerId).success) {
+        response
+          .status(400)
+          .json({ error: { code: "BAD_REQUEST", message: "Invalid viewer" } });
+        return;
+      }
+      await repository.walletViewerRevoke(
+        response.locals.userId,
+        String(request.params.walletId),
+        String(request.params.viewerId),
+      );
+      response.status(204).end();
+    },
+  );
+  app.post(
+    "/api/wallets/:walletId/leave",
+    mutationCsrfGuard,
+    walletIdValidate,
+    async (request, response) => {
+      await repository.walletViewerLeave(
+        response.locals.userId,
+        String(request.params.walletId),
+      );
+      response.status(204).end();
     },
   );
   const transactionIdValidate: RequestHandler = (request, response, next) => {
@@ -279,16 +434,27 @@ export function walletRoutesRegister(
     },
   );
   app.use(((error, _request, response, next) => {
-    if (!(error instanceof WalletAccessError)) {
+    if (
+      !(error instanceof WalletAccessError) &&
+      !(
+        error instanceof Error &&
+        error.name === "WalletAccessError" &&
+        "code" in error
+      )
+    ) {
       next(error);
       return;
     }
+    const walletError = error as WalletAccessError;
     const status =
-      error.code === "PRIVACY_REQUIRED" || error.code === "WALLET_FORBIDDEN"
+      walletError.code === "PRIVACY_REQUIRED" ||
+      walletError.code === "WALLET_FORBIDDEN"
         ? 403
-        : 409;
+        : walletError.code === "INVITATION_INVALID"
+          ? 410
+          : 409;
     response
       .status(status)
-      .json({ error: { code: error.code, message: error.code } });
+      .json({ error: { code: walletError.code, message: walletError.code } });
   }) as import("express").ErrorRequestHandler);
 }

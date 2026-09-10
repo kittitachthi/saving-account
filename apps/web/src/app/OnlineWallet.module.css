@@ -3,6 +3,33 @@
   color: var(--color-text-muted);
   font-size: 12px;
 }
+.wallet-view {
+  display: contents;
+}
+.wallet-viewer-view {
+  position: relative;
+}
+.wallet-viewer-view::after {
+  content: "READ ONLY · POCKA";
+  position: fixed;
+  inset: 50% auto auto 50%;
+  z-index: 20;
+  transform: translate(-50%, -50%) rotate(-20deg);
+  color: var(--color-text-muted);
+  opacity: 0.15;
+  font-size: clamp(24px, 8vw, 80px);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.wallet-obscured-view {
+  filter: blur(24px);
+  user-select: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wallet-viewer-view::after {
+    transition: none;
+  }
+}
 .notice p {
   margin: 4px 0;
 }

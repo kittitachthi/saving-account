@@ -187,15 +187,15 @@ describe("online Personal Wallet through HTTP and PostgreSQL", () => {
     expect(empty.headers["cache-control"]).toBe("no-store");
   });
 
-  it("checks Owner membership on every read and write, including another owned Wallet", async () => {
+  it("allows Viewer reads but checks Owner membership on every write", async () => {
     await db.client.walletMembership.create({
       data: { walletId: wallets[0], userId: ids[1], role: "VIEWER" },
     });
-    for (const cookie of [cookies[1], cookies[2]]) {
+    for (const [index, cookie] of [cookies[1], cookies[2]].entries()) {
       await request(app)
         .get(walletPathBuild())
         .set("Cookie", cookie)
-        .expect(403);
+        .expect(index === 0 ? 200 : 403);
       await request(app)
         .post(`${walletPathBuild()}/transactions`)
         .set(trusted)

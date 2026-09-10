@@ -27,7 +27,7 @@ export function SavingsChart({
   transactions: Transaction[];
   saved: number;
   goal: number | null;
-  onSetGoal: () => void;
+  onSetGoal?: () => void;
   serverCategories?: SavingsCategorySummary[];
   moneyUnit?: MoneyUnit;
 }) {
@@ -84,9 +84,11 @@ export function SavingsChart({
               : "ยังไม่ได้ตั้งเป้าหมาย"}
           </p>
         </div>
-        <button onClick={onSetGoal}>
-          {goal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมาย"}
-        </button>
+        {onSetGoal && (
+          <button onClick={onSetGoal}>
+            {goal ? "แก้ไขเป้าหมาย" : "ตั้งเป้าหมาย"}
+          </button>
+        )}
       </div>
       <InteractiveDonut
         ariaLabel="กราฟความคืบหน้าเงินเก็บ"

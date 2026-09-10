@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import type {
   CreateWalletTransaction,
   EditWalletTransaction,
@@ -6,6 +7,9 @@ import type {
   WalletUndoReceipt,
   WalletSnapshot,
   WalletTransaction,
+  WalletInvitation,
+  WalletSummary,
+  WalletViewer,
 } from "@saving-account/contracts";
 import {
   walletTransactionSort,
@@ -21,9 +25,11 @@ export class WalletAccessError extends Error {
       | "AMOUNT_LIMIT"
       | "TRANSACTION_CHANGED"
       | "UNDO_EXPIRED"
-      | "OPERATION_CONFLICT",
+      | "OPERATION_CONFLICT"
+      | "INVITATION_INVALID",
   ) {
     super(code);
+    this.name = "WalletAccessError";
   }
 }
 
@@ -93,6 +99,33 @@ export class WalletRepository {
     return membership.wallet;
   }
 
+  private async walletReadAuthorize(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    walletId: string,
+    now: Date,
+  ) {
+    const accepted = await tx.privacyAcceptance.findUnique({
+      where: { userId_version: { userId, version: this.noticeVersion } },
+    });
+    if (!accepted) throw new WalletAccessError("PRIVACY_REQUIRED");
+    const membership = await tx.walletMembership.findUnique({
+      where: { walletId_userId: { walletId, userId } },
+      include: { wallet: { include: { owner: true } } },
+    });
+    if (!membership) throw new WalletAccessError("WALLET_FORBIDDEN");
+    if (
+      membership.role === "VIEWER" &&
+      (!membership.lastViewedAt ||
+        now.getTime() - membership.lastViewedAt.getTime() >= 15 * 60_000)
+    )
+      await tx.walletMembership.update({
+        where: { walletId_userId: { walletId, userId } },
+        data: { lastViewedAt: now },
+      });
+    return { membership, wallet: membership.wallet };
+  }
+
   async walletSnapshotRead(
     userId: string,
     walletId: string,
@@ -102,7 +135,12 @@ export class WalletRepository {
   ): Promise<WalletSnapshot> {
     return this.client.$transaction(
       async (tx) => {
-        const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);
+        const { wallet, membership } = await this.walletReadAuthorize(
+          tx,
+          userId,
+          walletId,
+          now,
+        );
         const items = walletTransactionSort(
           (
             await tx.walletTransaction.findMany({
@@ -111,6 +149,11 @@ export class WalletRepository {
           ).map(walletTransactionResponseMap),
         );
         const goal = await tx.savingsGoal.findUnique({ where: { walletId } });
+        const availableWallets = await tx.walletMembership.findMany({
+          where: { userId },
+          include: { wallet: { include: { owner: true } } },
+          orderBy: { wallet: { createdAt: "asc" } },
+        });
         const filtered =
           filter === "all"
             ? items
@@ -122,7 +165,24 @@ export class WalletRepository {
             id: wallet.id,
             name: wallet.name,
             timezone: wallet.timezone,
+            role: membership.role.toLowerCase() as "owner" | "viewer",
+            owner: {
+              displayName: wallet.owner.displayName,
+              email: wallet.owner.email,
+            },
           },
+          availableWallets: availableWallets.map(
+            ({ role, wallet: availableWallet }) => ({
+              id: availableWallet.id,
+              name: availableWallet.name,
+              timezone: availableWallet.timezone,
+              role: role.toLowerCase() as "owner" | "viewer",
+              owner: {
+                displayName: availableWallet.owner.displayName,
+                email: availableWallet.owner.email,
+              },
+            }),
+          ),
           ...walletSnapshotSummarize(items, now),
           goal: goal ? Number(goal.amount) : null,
           transactions: filtered.slice(
@@ -365,6 +425,256 @@ export class WalletRepository {
         create: { walletId, amount: BigInt(amount) },
         update: { amount: BigInt(amount) },
       });
+    });
+  }
+
+  async walletList(userId: string): Promise<WalletSummary[]> {
+    if (!(await this.privacyAcceptanceCheck(userId)))
+      throw new WalletAccessError("PRIVACY_REQUIRED");
+    const memberships = await this.client.walletMembership.findMany({
+      where: { userId },
+      include: { wallet: { include: { owner: true } } },
+      orderBy: { wallet: { createdAt: "asc" } },
+    });
+    return memberships.map(({ role, wallet }) => ({
+      id: wallet.id,
+      name: wallet.name,
+      timezone: wallet.timezone,
+      role: role.toLowerCase() as "owner" | "viewer",
+      owner: {
+        displayName: wallet.owner.displayName,
+        email: wallet.owner.email,
+      },
+    }));
+  }
+
+  async walletExport(userId: string, walletId: string) {
+    return this.client.$transaction(async (tx) => {
+      const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);
+      const [transactions, goal] = await Promise.all([
+        tx.walletTransaction.findMany({
+          where: { walletId, deletedAt: null },
+          orderBy: [
+            { occurredOn: "asc" },
+            { occurredTime: "asc" },
+            { id: "asc" },
+          ],
+        }),
+        tx.savingsGoal.findUnique({ where: { walletId } }),
+      ]);
+      return {
+        wallet: { id: wallet.id, name: wallet.name, timezone: wallet.timezone },
+        transactions: transactions.map(walletTransactionResponseMap),
+        savingsGoal: goal
+          ? {
+              amount: Number(goal.amount),
+              updatedAt: goal.updatedAt.toISOString(),
+            }
+          : null,
+      };
+    });
+  }
+
+  async walletSharingOverview(userId: string, walletId: string, now: Date) {
+    return this.client.$transaction(async (tx) => {
+      await this.walletOwnerAuthorize(tx, userId, walletId);
+      const [invitations, memberships] = await Promise.all([
+        tx.walletInvitation.findMany({
+          where: { walletId, status: "PENDING" },
+          orderBy: { createdAt: "desc" },
+        }),
+        tx.walletMembership.findMany({
+          where: { walletId, role: "VIEWER" },
+          include: { user: true },
+          orderBy: { user: { displayName: "asc" } },
+        }),
+      ]);
+      return {
+        invitations: invitations.map((invitation): WalletInvitation => ({
+          id: invitation.id,
+          email: invitation.email,
+          status: invitation.expiresAt <= now ? "expired" : "pending",
+          expiresAt: invitation.expiresAt.toISOString(),
+        })),
+        viewers: memberships.map(({ user, lastViewedAt }): WalletViewer => ({
+          userId: user.id,
+          displayName: user.displayName,
+          email: user.email,
+          lastViewedAt: lastViewedAt?.toISOString() ?? null,
+        })),
+      };
+    });
+  }
+
+  async walletInvitationCreate(
+    userId: string,
+    walletId: string,
+    email: string,
+    tokenHash: string,
+    token: string,
+    appOrigin: string,
+    now: Date,
+  ) {
+    return this.client.$transaction(async (tx) => {
+      const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);
+      const existingMember = await tx.walletMembership.findFirst({
+        where: { walletId, user: { email } },
+      });
+      if (existingMember) throw new WalletAccessError("OPERATION_CONFLICT");
+      const invitation = await tx.walletInvitation.create({
+        data: {
+          walletId,
+          invitedById: userId,
+          email,
+          tokenHash,
+          expiresAt: new Date(now.getTime() + 7 * 86400_000),
+        },
+      });
+      await tx.notificationOutbox.create({
+        data: {
+          kind: "WALLET_INVITATION",
+          dedupeKey: `wallet-invitation:${invitation.id}`,
+          recipientEmail: email,
+          payload: {
+            walletName: wallet.name,
+            invitationUrl: `${appOrigin}/?invitation=${encodeURIComponent(token)}`,
+          },
+        },
+      });
+      return {
+        id: invitation.id,
+        expiresAt: invitation.expiresAt.toISOString(),
+      };
+    });
+  }
+
+  async walletInvitationCancel(
+    userId: string,
+    walletId: string,
+    invitationId: string,
+    now: Date,
+  ) {
+    await this.client.$transaction(async (tx) => {
+      await this.walletOwnerAuthorize(tx, userId, walletId);
+      const result = await tx.walletInvitation.updateMany({
+        where: {
+          id: invitationId,
+          walletId,
+          status: "PENDING",
+          expiresAt: { gt: now },
+        },
+        data: { status: "CANCELLED", resolvedAt: now },
+      });
+      if (result.count !== 1) throw new WalletAccessError("INVITATION_INVALID");
+    });
+  }
+
+  async walletInvitationAccept(
+    userId: string,
+    email: string,
+    tokenHash: string,
+    now: Date,
+  ) {
+    return this.client.$transaction(async (tx) => {
+      const acceptedNotice = await tx.privacyAcceptance.findUnique({
+        where: { userId_version: { userId, version: this.noticeVersion } },
+      });
+      if (!acceptedNotice) throw new WalletAccessError("PRIVACY_REQUIRED");
+      const rows = await tx.$queryRaw<
+        Array<{ id: string }>
+      >`SELECT "id" FROM "WalletInvitation" WHERE "tokenHash" = ${tokenHash} FOR UPDATE`;
+      const invitation = rows[0]
+        ? await tx.walletInvitation.findUnique({
+            where: { id: rows[0].id },
+            include: { wallet: { include: { owner: true } } },
+          })
+        : null;
+      if (
+        !invitation ||
+        invitation.status !== "PENDING" ||
+        invitation.expiresAt <= now ||
+        invitation.email !== email
+      )
+        throw new WalletAccessError("INVITATION_INVALID");
+      await tx.walletMembership.upsert({
+        where: { walletId_userId: { walletId: invitation.walletId, userId } },
+        create: { walletId: invitation.walletId, userId, role: "VIEWER" },
+        update: {},
+      });
+      await tx.walletInvitation.update({
+        where: { id: invitation.id },
+        data: { status: "ACCEPTED", resolvedAt: now },
+      });
+      await this.walletAccessNotificationCreate(
+        tx,
+        invitation.id,
+        invitation.wallet.owner.email,
+        "accepted",
+        email,
+      );
+      return { walletId: invitation.walletId };
+    });
+  }
+
+  async walletViewerRevoke(userId: string, walletId: string, viewerId: string) {
+    await this.client.$transaction(async (tx) => {
+      const wallet = await this.walletOwnerAuthorize(tx, userId, walletId);
+      const member = await tx.walletMembership.findUnique({
+        where: { walletId_userId: { walletId, userId: viewerId } },
+        include: { user: true },
+      });
+      if (!member || member.role !== "VIEWER")
+        throw new WalletAccessError("WALLET_FORBIDDEN");
+      await tx.walletMembership.delete({
+        where: { walletId_userId: { walletId, userId: viewerId } },
+      });
+      await this.walletAccessNotificationCreate(
+        tx,
+        randomUUID(),
+        wallet.ownerId === userId
+          ? (await tx.user.findUniqueOrThrow({ where: { id: userId } })).email
+          : "",
+        "revoked",
+        member.user.email,
+      );
+    });
+  }
+
+  async walletViewerLeave(userId: string, walletId: string) {
+    await this.client.$transaction(async (tx) => {
+      const member = await tx.walletMembership.findUnique({
+        where: { walletId_userId: { walletId, userId } },
+        include: { user: true, wallet: { include: { owner: true } } },
+      });
+      if (!member || member.role !== "VIEWER")
+        throw new WalletAccessError("WALLET_FORBIDDEN");
+      await tx.walletMembership.delete({
+        where: { walletId_userId: { walletId, userId } },
+      });
+      await this.walletAccessNotificationCreate(
+        tx,
+        randomUUID(),
+        member.wallet.owner.email,
+        "left",
+        member.user.email,
+      );
+    });
+  }
+
+  private async walletAccessNotificationCreate(
+    tx: Prisma.TransactionClient,
+    key: string,
+    recipientEmail: string,
+    action: string,
+    viewerEmail: string,
+  ) {
+    await tx.notificationOutbox.create({
+      data: {
+        kind: "WALLET_ACCESS_CHANGED",
+        dedupeKey: `wallet-access:${action}:${key}`,
+        recipientEmail,
+        payload: { action, viewerEmail },
+      },
     });
   }
 }

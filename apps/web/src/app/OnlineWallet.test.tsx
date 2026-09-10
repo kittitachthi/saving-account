@@ -620,3 +620,18 @@ describe("online financial workflows through Application", () => {
     ).toBeInTheDocument();
   });
 });
+it("opens Wallet sharing from the header and restores trigger focus", async () => {
+  server();
+  render(<Application />);
+  const trigger = await screen.findByRole("button", { name: /จัดการการแชร์/ });
+  expect(
+    screen.queryByRole("dialog", { name: "จัดการการแชร์" }),
+  ).not.toBeInTheDocument();
+  trigger.focus();
+  fireEvent.click(trigger);
+  expect(
+    screen.getByRole("dialog", { name: "จัดการการแชร์" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "ปิดข้อมูลการแชร์" }));
+  await waitFor(() => expect(trigger).toHaveFocus());
+});

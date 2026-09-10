@@ -1,6 +1,6 @@
 # Spec implementation backlog
 
-Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, and user-approved 13–14 on 2026-09-09: 13/27 product tickets complete. Standards-migration tickets 28–31 were approved and completed on 2026-09-09 before continuing product work. Ticket 09 and 15–27 remain for subsequent batches; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
+Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, 13–14 on 2026-09-09, and Wallet Sharing 16–22 on 2026-09-10: 20/27 product tickets complete. Standards-migration tickets 28–31 were completed on 2026-09-09. Tickets 09, 15 and 23–27 remain; `ready-for-agent` describes ticket readiness. Existing account-menu tickets are preserved.
 
 Local tracking follows the existing repository convention; no external issues were published. Run `/setup-matt-pocock-skills` to configure an external tracker.
 
@@ -29,13 +29,13 @@ Verification for 01–05: 121 tests passed (35 API, 86 web), repository typechec
 13. [แก้ไข Transaction ออนไลน์](issues/13-edit-transaction.md) — complete
 14. [ลบและ Undo Transaction ออนไลน์](issues/14-delete-undo-online.md) — complete
 15. [นำเข้าข้อมูลเดิมจากอุปกรณ์](issues/15-device-import.md) — deferred
-16. [Owner export ข้อมูล Wallet](issues/16-owner-export.md) — deferred
-17. [เชิญ Viewer และเปิด Wallet แบบอ่านอย่างเดียว](issues/17-invite-viewer.md) — deferred
-18. [ดูและยกเลิกคำเชิญที่ยังไม่ตอบรับ](issues/18-cancel-invitations.md) — deferred
-19. [เพิกถอน Viewer และออกจาก Wallet ที่แชร์](issues/19-revoke-leave.md) — deferred
-20. [แจ้งเตือนเมื่อสิทธิ์แชร์เปลี่ยน](issues/20-sharing-notifications.md) — deferred
-21. [แสดง Last Viewed At แบบประมาณ](issues/21-last-viewed.md) — deferred
-22. [เพิ่มมาตรการลดการเผยแพร่หน้าจอแชร์](issues/22-viewer-screen-privacy.md) — deferred
+16. [Owner export ข้อมูล Wallet](issues/16-owner-export.md) — complete
+17. [เชิญ Viewer และเปิด Wallet แบบอ่านอย่างเดียว](issues/17-invite-viewer.md) — complete
+18. [ดูและยกเลิกคำเชิญที่ยังไม่ตอบรับ](issues/18-cancel-invitations.md) — complete
+19. [เพิกถอน Viewer และออกจาก Wallet ที่แชร์](issues/19-revoke-leave.md) — complete
+20. [แจ้งเตือนเมื่อสิทธิ์แชร์เปลี่ยน](issues/20-sharing-notifications.md) — complete
+21. [แสดง Last Viewed At แบบประมาณ](issues/21-last-viewed.md) — complete
+22. [เพิ่มมาตรการลดการเผยแพร่หน้าจอแชร์](issues/22-viewer-screen-privacy.md) — complete
 23. [ขอลบบัญชีและกู้คืนภายใน 30 วัน](issues/23-account-deletion-recovery.md) — deferred
 24. [ลบบัญชีถาวรเมื่อครบกำหนด](issues/24-permanent-deletion.md) — deferred
 25. [ล้าง Waitlist ที่ครบอายุ 180 วัน](issues/25-waitlist-retention.md) — deferred

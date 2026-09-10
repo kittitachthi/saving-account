@@ -15,7 +15,12 @@ import { SavingsChart, SavingsGoalForm } from "../features/savings";
 import { LogoutConfirmation } from "../features/account";
 import { SettingsSurface } from "../features/settings";
 import { useTheme } from "../features/theme";
-import { useWallet, walletSnapshotPresent } from "../features/wallets";
+import {
+  useWallet,
+  walletSnapshotPresent,
+  WalletSharingPanel,
+} from "../features/wallets";
+import { authenticatedRequest } from "../features/auth";
 import styles from "./OnlineWallet.module.css";
 
 export function OnlineWallet({
@@ -29,11 +34,45 @@ export function OnlineWallet({
   onSessionEnded: () => void;
   onPrivacyRequired: () => void;
 }) {
-  const wallet = useWallet(
-    user.personalWalletId,
-    onSessionEnded,
-    onPrivacyRequired,
+  const [walletId, setWalletId] = useState(user.personalWalletId);
+  const [viewerObscured, setViewerObscured] = useState(
+    document.visibilityState !== "visible",
   );
+  const [sharingOpen, setSharingOpen] = useState(false);
+  const sharingTrigger = useRef<HTMLElement | null>(null);
+  const wallet = useWallet(walletId, onSessionEnded, onPrivacyRequired);
+  useEffect(() => {
+    const invitation = new URLSearchParams(window.location.search).get(
+      "invitation",
+    );
+    void (async () => {
+      if (invitation) {
+        if (
+          window.confirm(
+            "ตรวจคำเชิญและยอมรับการดู Wallet แบบอ่านอย่างเดียวหรือไม่?",
+          )
+        ) {
+          const response = await authenticatedRequest(
+            "/api/wallets/invitations/accept",
+            { method: "POST", body: JSON.stringify({ token: invitation }) },
+          );
+          const accepted = (await response.json()) as { walletId: string };
+          setWalletId(accepted.walletId);
+        }
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    })();
+  }, []);
+  useEffect(() => {
+    const handleWalletVisibilityChange = () =>
+      setViewerObscured(document.visibilityState !== "visible");
+    document.addEventListener("visibilitychange", handleWalletVisibilityChange);
+    return () =>
+      document.removeEventListener(
+        "visibilitychange",
+        handleWalletVisibilityChange,
+      );
+  }, []);
   const [entryOpen, setEntryOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState<{
@@ -78,6 +117,8 @@ export function OnlineWallet({
   const mascot = useDashboardMascot();
   const snapshot = wallet.snapshot;
   const view = snapshot ? walletSnapshotPresent(snapshot) : null;
+  const selectedWallet = snapshot?.wallet;
+  const owner = selectedWallet?.role === "owner";
   return (
     <AppShell
       displayName={user.displayName}
@@ -90,81 +131,112 @@ export function OnlineWallet({
         setLogoutOpen(true);
       }}
     >
-      {snapshot && view ? (
-        <FinancialOverview
-          displayName={user.displayName}
-          hasGoal={view.goal !== null}
-          onSavingsGoalEditRequest={() => setGoalOpen(true)}
-          onTransactionCreateRequest={() => setEntryOpen(true)}
-          disabled={wallet.busy}
-          notice={
-            <div className={styles.notice}>
-              <p>กระเป๋าส่วนตัว · {snapshot.wallet.name} · เวลา Asia/Bangkok</p>
-              <p>
-                ข้อมูลเดิมในอุปกรณ์ยังคงเก็บไว้ การนำเข้าจะเปิดให้ใช้งานภายหลัง
-              </p>
-              {actionError && <p role="alert">{actionError}</p>}
-              {wallet.error && <p role="alert">{wallet.error}</p>}
-              <button
-                ref={refreshButton}
-                disabled={wallet.busy}
-                onClick={() => void wallet.walletSnapshotReload()}
-              >
-                รีเฟรชข้อมูล
-              </button>
-            </div>
-          }
-          summary={
-            <DashboardSummary
-              moneyUnit="satang"
-              totals={view.totals}
-              transactions={[]}
-              now={new Date()}
-              mascotState={mascot.state}
-              online={{ monthly: view.monthly, daily: view.daily }}
-            />
-          }
+      {snapshot && view && selectedWallet ? (
+        <div
+          className={`${styles["wallet-view"]} ${!owner ? styles["wallet-viewer-view"] : ""} ${!owner && viewerObscured ? styles["wallet-obscured-view"] : ""}`}
         >
-          <TransactionPanel
-            moneyUnit="satang"
-            transactions={view.transactions}
-            filter={wallet.filter}
-            onTransactionFilterChange={wallet.transactionFilterChange}
-            page={snapshot.page}
-            now={new Date()}
-            onTransactionPageChange={wallet.transactionPageChange}
-            newItemId={null}
-            actionsDisabled={wallet.busy}
-            onTransactionEditRequest={(item) => {
-              transactionFocus.current = document.activeElement as HTMLElement;
-              setEditing(item);
+          <FinancialOverview
+            displayName={user.displayName}
+            hasGoal={view.goal !== null}
+            onSavingsGoalEditRequest={
+              owner ? () => setGoalOpen(true) : undefined
+            }
+            onTransactionCreateRequest={
+              owner ? () => setEntryOpen(true) : undefined
+            }
+            onWalletSharingOpenRequest={() => {
+              sharingTrigger.current = document.activeElement as HTMLElement;
+              setSharingOpen(true);
             }}
-            onTransactionDeleteRequest={(item) => {
-              transactionFocus.current = document.activeElement as HTMLElement;
-              setDeleteError("");
-              setActionError("");
-              setDeleting({ item, operationId: crypto.randomUUID() });
-            }}
-            serverPagination={{
-              page: snapshot.page,
-              totalPages: snapshot.totalPages,
-            }}
-          />
-          <CategoryChart
-            moneyUnit="satang"
-            transactions={[]}
-            expenseTotal={view.monthly.expense}
-            serverSummaries={view.expenseCategories}
-          />
-          <SavingsChart
-            moneyUnit="satang"
-            transactions={[]}
-            saved={view.totals.saving}
-            goal={view.goal}
-            onSetGoal={() => setGoalOpen(true)}
-            serverCategories={view.savingsCategories}
-          />
-        </FinancialOverview>
+            walletSharingLabel={
+              owner ? "จัดการการแชร์" : "ข้อมูล Wallet ที่แชร์"
+            }
+            disabled={wallet.busy}
+            notice={
+              <div className={styles.notice}>
+                <p>
+                  {owner
+                    ? "กระเป๋าส่วนตัว"
+                    : `กระเป๋าที่แชร์โดย ${snapshot.wallet.owner.displayName}`}{" "}
+                  · {snapshot.wallet.name} · เวลา Asia/Bangkok
+                </p>
+                <p>
+                  ข้อมูลเดิมในอุปกรณ์ยังคงเก็บไว้
+                  การนำเข้าจะเปิดให้ใช้งานภายหลัง
+                </p>
+                {actionError && <p role="alert">{actionError}</p>}
+                {wallet.error && <p role="alert">{wallet.error}</p>}
+                <button
+                  ref={refreshButton}
+                  disabled={wallet.busy}
+                  onClick={() => void wallet.walletSnapshotReload()}
+                >
+                  รีเฟรชข้อมูล
+                </button>
+              </div>
+            }
+            summary={
+              <DashboardSummary
+                moneyUnit="satang"
+                totals={view.totals}
+                transactions={[]}
+                now={new Date()}
+                mascotState={mascot.state}
+                online={{ monthly: view.monthly, daily: view.daily }}
+              />
+            }
+          >
+            <TransactionPanel
+              moneyUnit="satang"
+              transactions={view.transactions}
+              filter={wallet.filter}
+              onTransactionFilterChange={wallet.transactionFilterChange}
+              page={snapshot.page}
+              now={new Date()}
+              onTransactionPageChange={wallet.transactionPageChange}
+              newItemId={null}
+              actionsDisabled={wallet.busy}
+              onTransactionEditRequest={
+                owner
+                  ? (item) => {
+                      transactionFocus.current =
+                        document.activeElement as HTMLElement;
+                      setEditing(item);
+                    }
+                  : undefined
+              }
+              onTransactionDeleteRequest={
+                owner
+                  ? (item) => {
+                      transactionFocus.current =
+                        document.activeElement as HTMLElement;
+                      setDeleteError("");
+                      setActionError("");
+                      setDeleting({ item, operationId: crypto.randomUUID() });
+                    }
+                  : undefined
+              }
+              serverPagination={{
+                page: snapshot.page,
+                totalPages: snapshot.totalPages,
+              }}
+            />
+            <CategoryChart
+              moneyUnit="satang"
+              transactions={[]}
+              expenseTotal={view.monthly.expense}
+              serverSummaries={view.expenseCategories}
+            />
+            <SavingsChart
+              moneyUnit="satang"
+              transactions={[]}
+              saved={view.totals.saving}
+              goal={view.goal}
+              onSetGoal={owner ? () => setGoalOpen(true) : undefined}
+              serverCategories={view.savingsCategories}
+            />
+          </FinancialOverview>
+        </div>
       ) : (
         <main className={styles.loading}>
           {wallet.error ? (
@@ -179,7 +251,7 @@ export function OnlineWallet({
           )}
         </main>
       )}
-      {(entryOpen || editing) && view && snapshot && (
+      {owner && (entryOpen || editing) && view && snapshot && (
         <TransactionForm
           initialTransaction={editing ?? undefined}
           availableBalance={view.totals.balance}
@@ -270,11 +342,29 @@ export function OnlineWallet({
           }}
         />
       )}
-      {goalOpen && view && (
+      {owner && goalOpen && view && (
         <SavingsGoalForm
           currentGoal={view.goal}
           onlineSave={wallet.savingsGoalUpdate}
           onClose={() => setGoalOpen(false)}
+        />
+      )}
+      {sharingOpen && snapshot && selectedWallet && (
+        <WalletSharingPanel
+          wallets={snapshot.availableWallets ?? [selectedWallet]}
+          wallet={selectedWallet}
+          onWalletChange={(nextWalletId) => {
+            setWalletId(nextWalletId);
+            setSharingOpen(false);
+          }}
+          onAccessEnded={() => {
+            setWalletId(user.personalWalletId);
+            setSharingOpen(false);
+          }}
+          onClose={() => {
+            setSharingOpen(false);
+            queueMicrotask(() => sharingTrigger.current?.focus());
+          }}
         />
       )}
       {settingsOpen && (
