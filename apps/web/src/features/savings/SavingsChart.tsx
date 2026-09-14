@@ -74,7 +74,7 @@ export function SavingsChart({
   );
 
   return (
-    <article className={styles.panel}>
+    <article className={`${styles.panel} ${styles["savings-panel"]}`}>
       <div className={styles.panelHead}>
         <div>
           <h3>เป้าหมายเงินเก็บ</h3>

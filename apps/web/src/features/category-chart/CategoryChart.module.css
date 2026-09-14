@@ -10,6 +10,9 @@
     box-shadow var(--duration-fast) ease,
     background-color var(--duration-theme) ease;
 }
+.expense-panel {
+  grid-area: expense;
+}
 .panel:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-card-hover);
@@ -50,7 +53,6 @@
 }
 @media (max-width: 600px) {
   .panel {
-    grid-row: 1;
     padding: 17px;
   }
 }

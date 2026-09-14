@@ -50,7 +50,7 @@ export function CategoryChart({
     </>
   );
   return (
-    <article className={styles.panel}>
+    <article className={`${styles.panel} ${styles["expense-panel"]}`}>
       <div className={styles.panelHead}>
         <div>
           <h3>ภาพรวมรายจ่าย</h3>
