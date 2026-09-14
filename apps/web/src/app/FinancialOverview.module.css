@@ -49,8 +49,13 @@
 }
 .financial-overview-content {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 17px;
+  grid-template-columns: 3fr 2fr;
+
+  grid-template-areas:
+    "transaction expense"
+    "transaction savings";
+
+  gap: 16px;
 }
 @media (max-width: 900px) {
   .financial-overview-main {
@@ -58,6 +63,11 @@
   }
   .financial-overview-content {
     grid-template-columns: 1fr;
+
+    grid-template-areas:
+      "transaction"
+      "expense"
+      "savings";
   }
 }
 @media (max-width: 600px) {
