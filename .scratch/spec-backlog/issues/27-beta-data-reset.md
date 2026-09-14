@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-**Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
+**Scheduling:** Deferred — รอเลือก deployment provider และ credentials สำหรับ isolated rehearsal ห้ามเริ่ม reset อัตโนมัติ.
 
-**Progress:** เพิ่ม target guard ที่ปฏิเสธ production, เอกสาร backup/restore และ notification schedule 14/3 วันพร้อม backup retention 30 วันแล้ว; reset rehearsal ยังเป็นขั้นตอนสุดท้าย.
+**Progress:** target guard, durable notification schedule ที่ตรง 14/3 วัน, backup retention calculation 30 วัน, procedure และ local isolated rehearsal บนข้อมูล disposable เสร็จแล้ว โดยไม่แตะฐาน application หรือข้อมูลจริง. ยังเหลือ provider-native encrypted backup/restore ด้วย credentials แยกและ automatic verified deletion.
 
-- [ ] แจ้งล่วงหน้าผ่าน durable notification และให้ Owner export
-- [ ] environment guard ปฏิเสธ production และไม่ใช้ production secrets/data
-- [ ] มี backup/restore procedure และ rehearsal บนข้อมูลทดสอบโดยไม่ reset ข้อมูลจริงระหว่าง implementation
+- [x] แจ้งล่วงหน้าผ่าน durable notification และให้ Owner export
+- [x] environment guard ปฏิเสธ production และไม่ใช้ production secrets/data
+- [ ] ซ้อม provider-native encrypted backup/restore ด้วย credentials แยกบนข้อมูลทดสอบ และยืนยัน automatic deletion หลัง 30 วัน

@@ -20,7 +20,7 @@ export async function betaResetNotificationsSchedule(
         dedupeKey: `beta-reset:${resetKey}:notice:${email}`,
         recipientEmail: email,
         payload: { resetAt: resetKey, phase: "notice" },
-        nextAttemptAt: now,
+        nextAttemptAt: new Date(resetAt.getTime() - BETA_RESET_NOTICE_MS),
       },
       {
         kind: "BETA_RESET_NOTICE" as const,

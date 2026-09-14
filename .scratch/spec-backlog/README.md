@@ -1,6 +1,6 @@
 # Spec implementation backlog
 
-Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, 13–14 on 2026-09-09, Wallet Sharing 16–22 on 2026-09-10, and 09/15/23–26 on 2026-09-14: 26/27 product tickets complete. Standards-migration tickets 28–31 were completed on 2026-09-09. Ticket 27 remains partially complete: production guard, notification schedule and backup/restore procedure are ready; isolated reset rehearsal remains. Existing account-menu tickets are preserved.
+Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, 13–14 on 2026-09-09, Wallet Sharing 16–22 on 2026-09-10, and 09/15/23–26 on 2026-09-14: 26/27 product tickets complete. Standards-migration tickets 28–31 were completed on 2026-09-09. Ticket 27 completed its local isolated backup, restore and reset rehearsal against disposable data; provider-native rehearsal with separate credentials and automatic verified backup deletion remains. Existing account-menu tickets are preserved.
 
 Local tracking follows the existing repository convention; no external issues were published. Run `/setup-matt-pocock-skills` to configure an external tracker.
 
