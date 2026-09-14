@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Overlay } from "../../shared/ui/Overlay";
+import { Button } from "../../shared/ui/Button";
 import styles from "./LogoutConfirmation.module.css";
 
 type Props = {
@@ -57,16 +58,22 @@ export function LogoutConfirmation({
           </p>
         )}
         <div className={styles.actions}>
-          <button ref={cancelRef} disabled={pending} onClick={onCancel}>
-            ยกเลิก
-          </button>
-          <button
-            className={styles.confirm}
+          <Button
+            ref={cancelRef}
+            className={styles["logout-action-button"]}
             disabled={pending}
+            onClick={onCancel}
+          >
+            ยกเลิก
+          </Button>
+          <Button
+            className={styles["logout-action-button"]}
+            variant="primary"
+            pending={pending}
             onClick={onConfirm}
           >
             {pending ? "กำลังออกจากระบบ…" : "ออกจากระบบ"}
-          </button>
+          </Button>
         </div>
       </section>
     </Overlay>

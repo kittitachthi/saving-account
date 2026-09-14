@@ -1,15 +1,15 @@
-.backdrop {
+.settings-surface-backdrop {
   position: fixed;
   inset: 0;
   z-index: 20;
   background: transparent;
   isolation: isolate;
 }
-.surface {
+.settings-surface-container {
   position: absolute;
   bottom: 82px;
   left: 20px;
-  width: 285px;
+  width: 485px;
   max-width: calc(100vw - 40px);
   padding: 18px;
   border: 1px solid var(--color-border);
@@ -21,48 +21,48 @@
     color var(--duration-theme) ease,
     border-color var(--duration-theme) ease;
 }
-.head,
-.themeSetting {
+.settings-heading-container,
+.settings-theme-setting {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
 }
-.head {
+.settings-heading-container {
   padding-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
 }
-.head h3 {
+.settings-heading-container h3 {
   margin: 0;
   font-size: 16px;
 }
-.head p {
+.settings-heading-container p {
   margin: 2px 0 0;
   color: var(--color-text-muted);
   font-size: 11px;
 }
-.head > button {
+.settings-heading-container > button {
   border: 0;
   background: transparent;
   color: var(--color-text-muted);
   font-size: 22px;
 }
-.themeSetting {
-  padding-top: 15px;
+.settings-theme-setting {
+  padding: 15px 0;
 }
-.themeSetting b,
-.themeSetting small {
+.settings-theme-setting b,
+.settings-theme-setting small {
   display: block;
 }
-.themeSetting b {
+.settings-theme-setting b {
   font-size: 13px;
 }
-.themeSetting small {
+.settings-theme-setting small {
   margin-top: 2px;
   color: var(--color-text-muted);
   font-size: 10px;
 }
-.themeToggle {
+.settings-theme-toggle {
   display: grid;
   place-items: center;
   width: 40px;
@@ -73,23 +73,23 @@
   color: var(--color-accent);
   font-size: 22px;
 }
-.themeToggle:hover {
+.settings-theme-toggle:hover {
   transform: translateY(-1px);
 }
-.themeToggle:active {
+.settings-theme-toggle:active {
   transform: scale(0.95);
 }
-.themeToggle:focus-visible,
-.head > button:focus-visible {
+.settings-theme-toggle:focus-visible,
+.settings-heading-container > button:focus-visible {
   outline: 3px solid var(--color-focus);
   outline-offset: 2px;
 }
 @media (max-width: 600px) {
-  .backdrop {
+  .settings-surface-backdrop {
     background: var(--color-overlay);
     backdrop-filter: blur(2px);
   }
-  .surface {
+  .settings-surface-container {
     right: 0;
     bottom: 0;
     left: 0;
@@ -108,12 +108,12 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .surface {
+  .settings-surface-container {
     animation: none;
     transition: none;
   }
-  .themeToggle:hover,
-  .themeToggle:active {
+  .settings-theme-toggle:hover,
+  .settings-theme-toggle:active {
     transform: none;
   }
 }

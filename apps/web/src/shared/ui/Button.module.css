@@ -1,0 +1,52 @@
+.shared-action-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    transform var(--duration-fast) ease;
+}
+
+.shared-primary-button {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+.shared-secondary-button {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+.shared-destructive-button {
+  margin-top: 12px;
+  background: var(--color-destructive);
+  color: var(--color-on-accent);
+}
+.shared-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.shared-action-button:active:not(:disabled) {
+  transform: none;
+}
+.shared-action-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.shared-action-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shared-action-button {
+    transition-property: background-color, color, border-color;
+  }
+  .shared-action-button:hover:not(:disabled) {
+    transform: none;
+  }
+}

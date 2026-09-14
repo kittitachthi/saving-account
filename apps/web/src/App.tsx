@@ -117,8 +117,8 @@ export default function App({
       {settingsOpen && (
         <SettingsSurface
           theme={theme}
-          onToggleTheme={toggleTheme}
-          onClose={() => setSettingsOpen(false)}
+          onThemeToggleRequest={toggleTheme}
+          onSettingsCloseRequest={() => setSettingsOpen(false)}
         />
       )}
       {transactions.pendingDelete && (

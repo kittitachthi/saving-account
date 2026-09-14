@@ -41,7 +41,7 @@ export class AuthService {
     return { authorizationUrl: request.authorizationUrl };
   }
 
-  async complete(callbackUrl: URL, state: string) {
+  async complete(callbackUrl: URL, state: string, deviceLabel: string) {
     const attempt = await this.repository.consumeOAuthAttempt(state);
     if (!attempt) throw new AuthenticationRejectedError();
 
@@ -62,6 +62,7 @@ export class AuthService {
       { ...identity, email: identity.email.trim().toLowerCase() },
       hashSecret(sessionToken),
       expiresAt,
+      deviceLabel,
     );
     if (!user) throw new AuthenticationRejectedError();
 
@@ -82,6 +83,35 @@ export class AuthService {
       hashSecret(sessionToken),
       now,
       new Date(now.getTime() + SESSION_DURATION_MS),
+    );
+  }
+
+  async authSessionsList(sessionToken: string) {
+    return this.repository.authSessionsList(
+      hashSecret(sessionToken),
+      this.now(),
+    );
+  }
+
+  async authSessionRevoke(sessionToken: string, sessionId: string) {
+    return this.repository.authSessionRevoke(
+      hashSecret(sessionToken),
+      sessionId,
+      this.now(),
+    );
+  }
+
+  async authSessionsRevokeAll(sessionToken: string) {
+    return this.repository.authSessionsRevokeAll(
+      hashSecret(sessionToken),
+      this.now(),
+    );
+  }
+
+  async accountDeletionRequest(sessionToken: string) {
+    return this.repository.accountDeletionRequest(
+      hashSecret(sessionToken),
+      this.now(),
     );
   }
 }

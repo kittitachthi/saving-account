@@ -1,32 +1,46 @@
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import styles from "./SettingsSurface.module.css";
 import type { Theme } from "../theme/useTheme";
-type Props = { theme: Theme; onToggleTheme: () => void; onClose: () => void };
-export function SettingsSurface({ theme, onToggleTheme, onClose }: Props) {
+type Props = {
+  theme: Theme;
+  onThemeToggleRequest: () => void;
+  onSettingsCloseRequest: () => void;
+  accountSettings?: ReactNode;
+};
+export function SettingsSurface({
+  theme,
+  onThemeToggleRequest,
+  onSettingsCloseRequest,
+  accountSettings,
+}: Props) {
   useEffect(() => {
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    const handleSettingsDismissKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onSettingsCloseRequest();
     };
-    window.addEventListener("keydown", dismiss);
-    return () => window.removeEventListener("keydown", dismiss);
-  }, [onClose]);
+    window.addEventListener("keydown", handleSettingsDismissKey);
+    return () =>
+      window.removeEventListener("keydown", handleSettingsDismissKey);
+  }, [onSettingsCloseRequest]);
   return (
-    <div className={styles.backdrop} onMouseDown={onClose}>
+    <div
+      className={styles["settings-surface-backdrop"]}
+      onMouseDown={onSettingsCloseRequest}
+    >
       <section
-        className={styles.surface}
+        className={styles["settings-surface-container"]}
         aria-label="การตั้งค่า"
         onMouseDown={(event) => event.stopPropagation()}
       >
-        <div className={styles.head}>
+        <div className={styles["settings-heading-container"]}>
           <div>
             <h3>การตั้งค่า</h3>
             <p>ปรับแต่งหน้าตาของแอป</p>
           </div>
-          <button aria-label="ปิดการตั้งค่า" onClick={onClose}>
+          <button aria-label="ปิดการตั้งค่า" onClick={onSettingsCloseRequest}>
             ×
           </button>
         </div>
-        <div className={styles.themeSetting}>
+        <div className={styles["settings-theme-setting"]}>
           <div>
             <b>ธีมสี</b>
             <small>
@@ -34,8 +48,8 @@ export function SettingsSurface({ theme, onToggleTheme, onClose }: Props) {
             </small>
           </div>
           <button
-            className={styles.themeToggle}
-            onClick={onToggleTheme}
+            className={styles["settings-theme-toggle"]}
+            onClick={onThemeToggleRequest}
             aria-label={
               theme === "light" ? "เปลี่ยนเป็นธีมมืด" : "เปลี่ยนเป็นธีมสว่าง"
             }
@@ -46,6 +60,7 @@ export function SettingsSurface({ theme, onToggleTheme, onClose }: Props) {
             {theme === "light" ? "☾" : "☀"}
           </button>
         </div>
+        {accountSettings}
       </section>
     </div>
   );

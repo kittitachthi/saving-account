@@ -4,10 +4,10 @@
 
 **Blocked by:** 07: ป้องกัน CSRF สำหรับ authenticated mutations.
 
-**Status:** ready-for-agent
+**Status:** complete
 
 **Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
 
-- [ ] มีรายการอุปกรณ์และระบุ current Session
-- [ ] revoke หนึ่งอุปกรณ์ไม่กระทบเครื่องอื่น; logout ทั้งหมดมีผลทุกเครื่อง
-- [ ] backend ตรวจเจ้าของ Session และใช้ CSRF contract
+- [x] มีรายการอุปกรณ์และระบุ current Session
+- [x] revoke หนึ่งอุปกรณ์ไม่กระทบเครื่องอื่น; logout ทั้งหมดมีผลทุกเครื่อง
+- [x] backend ตรวจเจ้าของ Session และใช้ CSRF contract

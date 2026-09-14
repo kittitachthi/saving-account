@@ -72,12 +72,26 @@ export function createNotificationWorker({
                   text: `คุณได้รับคำเชิญดู Wallet ${payload.walletName} แบบอ่านอย่างเดียว: ${payload.invitationUrl}`,
                   html: `<p>คุณได้รับคำเชิญดู Wallet แบบอ่านอย่างเดียว</p><p><a href="${payload.invitationUrl}">ตรวจและยอมรับคำเชิญ</a></p>`,
                 }
-              : {
-                  ...common,
-                  subject: "การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง",
-                  text: `สิทธิ์ของ ${payload.viewerEmail} เปลี่ยนแปลง: ${payload.action}`,
-                  html: "<p>สิทธิ์การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง</p>",
-                };
+              : candidate.kind === "WAITLIST_WITHDRAWAL"
+                ? {
+                    ...common,
+                    subject: "ยืนยันถอนคำขอ Pocka Private Beta",
+                    text: `ถอนคำขอเข้าร่วม Private Beta: ${payload.withdrawalUrl}`,
+                    html: `<p><a href="${payload.withdrawalUrl}">ยืนยันถอนคำขอเข้าร่วม Private Beta</a></p>`,
+                  }
+                : candidate.kind === "BETA_RESET_NOTICE"
+                  ? {
+                      ...common,
+                      subject: "แจ้งกำหนดการล้างข้อมูล Pocka Private Beta",
+                      text: `Pocka จะล้างข้อมูล Private Beta ในวันที่ ${payload.resetAt} กรุณา export ข้อมูลที่ต้องการเก็บก่อนกำหนด`,
+                      html: `<p>Pocka จะล้างข้อมูล Private Beta ในวันที่ ${payload.resetAt}</p><p>กรุณา export ข้อมูลที่ต้องการเก็บก่อนกำหนด</p>`,
+                    }
+                  : {
+                      ...common,
+                      subject: "การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง",
+                      text: `สิทธิ์ของ ${payload.viewerEmail} เปลี่ยนแปลง: ${payload.action}`,
+                      html: "<p>สิทธิ์การเข้าถึง Wallet บน Pocka เปลี่ยนแปลง</p>",
+                    };
         await transport.send(message);
         await client.notificationOutbox.update({
           where: { id: candidate.id },
@@ -86,6 +100,9 @@ export function createNotificationWorker({
             sentAt: new Date(),
             attempts: { increment: 1 },
             lastError: null,
+            ...(candidate.kind === "WAITLIST_WITHDRAWAL"
+              ? { payload: { delivered: true } }
+              : {}),
           },
         });
         logger.info(

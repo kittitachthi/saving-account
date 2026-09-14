@@ -1,8 +1,10 @@
 export const SAVINGS_GOAL_KEY = "daily-money-savings-goal-v1";
+export const savingsGoalStorageRawRead = (storage: Storage = localStorage) =>
+  storage.getItem(SAVINGS_GOAL_KEY);
 export const loadSavingsGoal = (
   storage: Storage = localStorage,
 ): number | null => {
-  const value = Number(storage.getItem(SAVINGS_GOAL_KEY));
+  const value = Number(savingsGoalStorageRawRead(storage));
   return Number.isFinite(value) && value > 0 ? value : null;
 };
 export const saveSavingsGoal = (

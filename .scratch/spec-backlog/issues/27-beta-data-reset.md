@@ -8,6 +8,8 @@
 
 **Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
 
+**Progress:** เพิ่ม target guard ที่ปฏิเสธ production, เอกสาร backup/restore และ notification schedule 14/3 วันพร้อม backup retention 30 วันแล้ว; reset rehearsal ยังเป็นขั้นตอนสุดท้าย.
+
 - [ ] แจ้งล่วงหน้าผ่าน durable notification และให้ Owner export
 - [ ] environment guard ปฏิเสธ production และไม่ใช้ production secrets/data
 - [ ] มี backup/restore procedure และ rehearsal บนข้อมูลทดสอบโดยไม่ reset ข้อมูลจริงระหว่าง implementation

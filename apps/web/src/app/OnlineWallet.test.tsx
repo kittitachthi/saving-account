@@ -184,6 +184,7 @@ async function openTransaction(type = "รายรับ", amount = "10.25") {
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("online financial workflows through Application", () => {
@@ -667,4 +668,14 @@ it("labels shared Wallet information and shows Viewer edit timestamps without mu
   expect(
     screen.queryByRole("button", { name: /เพิ่มรายการ/ }),
   ).not.toBeInTheDocument();
+});
+
+it("shows recovery scope once and removes its URL marker", async () => {
+  window.history.replaceState({}, "", "/?accountRecovered=1");
+  server();
+  render(<Application />);
+  expect(
+    await screen.findByText(/กู้คืนบัญชีและกระเป๋าส่วนตัวแล้ว/),
+  ).toBeInTheDocument();
+  expect(window.location.search).toBe("");
 });

@@ -32,6 +32,8 @@ enum NotificationKind {
   BETA_APPROVED
   WALLET_INVITATION
   WALLET_ACCESS_CHANGED
+  WAITLIST_WITHDRAWAL
+  BETA_RESET_NOTICE
 }
 
 enum WalletInvitationStatus {
@@ -47,6 +49,8 @@ model User {
   avatarUrl          String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+  pendingDeletionAt  DateTime?
+  accountDeletionJob AccountDeletionJob?
   authAccounts       AuthAccount[]
   sessions           Session[]
   ownedWallets       Wallet[]            @relation("WalletOwner")
@@ -145,13 +149,14 @@ model WalletInvitation {
 }
 
 model Session {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @db.Uuid
-  tokenHash  String   @unique
-  expiresAt  DateTime
-  lastSeenAt DateTime @default(now())
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  lastSeenAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  deviceLabel String   @default("อุปกรณ์ไม่ทราบชนิด")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model BetaAllowlist {
@@ -169,6 +174,25 @@ model BetaWaitlistEntry {
   reviewedAt     DateTime?
   reviewedBy     String?
   approvedAt     DateTime?
+}
+
+model BetaWaitlistWithdrawal {
+  id         String    @id @default(uuid()) @db.Uuid
+  email      String    @unique
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model AccountDeletionJob {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  dueAt     DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dueAt])
 }
 
 model NotificationOutbox {

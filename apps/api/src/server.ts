@@ -51,7 +51,7 @@ const app = createApp({
       googleRedirectUri: config.googleRedirectUri,
       secureCookies: config.nodeEnv === "production",
     });
-    registerBetaWaitlistRoutes(app, betaWaitlist);
+    registerBetaWaitlistRoutes(app, betaWaitlist, config.appOrigin);
     walletRoutesRegister(
       app,
       auth,

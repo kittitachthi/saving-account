@@ -4,11 +4,11 @@
 
 **Blocked by:** 19: เพิกถอน Viewer และออกจาก Wallet ที่แชร์.
 
-**Status:** ready-for-agent
+**Status:** complete
 
 **Scheduling:** Deferred — รอผู้ใช้เลือก ห้ามเริ่มอัตโนมัติ.
 
-- [ ] ตั้ง Pending Deletion พร้อม revoke Sessions, Invitations และ sharing อย่างสอดคล้องกัน
-- [ ] บล็อกการเงินจนกู้คืนสำเร็จและไม่คืน sharing โดยไม่มีกฎรองรับ
-- [ ] เข้าถึงการขอลบได้แม้ปฏิเสธ Beta Privacy Notice
-- [ ] ทดสอบขอบเวลา, account identity, concurrent recovery/deletion
+- [x] ตั้ง Pending Deletion พร้อม revoke Sessions, Invitations และ sharing อย่างสอดคล้องกัน
+- [x] บล็อกการเงินจนกู้คืนสำเร็จและไม่คืน sharing โดยไม่มีกฎรองรับ
+- [x] เข้าถึงการขอลบได้แม้ปฏิเสธ Beta Privacy Notice
+- [x] ทดสอบขอบเวลา, account identity, concurrent recovery/deletion

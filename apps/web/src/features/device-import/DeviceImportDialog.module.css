@@ -1,0 +1,16 @@
+.device-import-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 24px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+.device-import-dialog div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 600px) {
+  .device-import-dialog div {
+    flex-direction: column;
+  }
+}

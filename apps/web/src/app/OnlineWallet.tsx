@@ -12,7 +12,11 @@ import {
 } from "../features/transactions";
 import { CategoryChart } from "../features/category-chart";
 import { SavingsChart, SavingsGoalForm } from "../features/savings";
-import { LogoutConfirmation } from "../features/account";
+import {
+  AccountDeletionConfirmation,
+  LogoutConfirmation,
+  SessionManager,
+} from "../features/account";
 import { SettingsSurface } from "../features/settings";
 import { useTheme } from "../features/theme";
 import {
@@ -21,7 +25,13 @@ import {
   WalletSharingPanel,
 } from "../features/wallets";
 import { authenticatedRequest } from "../features/auth";
+import {
+  DeviceImportDialog,
+  deviceImportComplete,
+  deviceImportPreviewRead,
+} from "../features/device-import";
 import styles from "./OnlineWallet.module.css";
+import { Button } from "../shared/ui/Button";
 
 export function OnlineWallet({
   user,
@@ -40,9 +50,22 @@ export function OnlineWallet({
   );
   const [sharingOpen, setSharingOpen] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [accountRecovered] = useState(
+    () =>
+      new URLSearchParams(window.location.search).get("accountRecovered") ===
+      "1",
+  );
+  const [deviceImportPreview, setDeviceImportPreview] = useState(
+    deviceImportPreviewRead,
+  );
   const sharingTrigger = useRef<HTMLElement | null>(null);
   const wallet = useWallet(walletId, onSessionEnded, onPrivacyRequired);
   useEffect(() => {
+    if (accountRecovered) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("accountRecovered");
+      window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+    }
     const invitation = new URLSearchParams(window.location.search).get(
       "invitation",
     );
@@ -77,7 +100,7 @@ export function OnlineWallet({
         }
       }
     })();
-  }, []);
+  }, [accountRecovered]);
   useEffect(() => {
     const handleWalletVisibilityChange = () =>
       setViewerObscured(document.visibilityState !== "visible");
@@ -124,6 +147,7 @@ export function OnlineWallet({
   const [goalOpen, setGoalOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [accountDeletionOpen, setAccountDeletionOpen] = useState(false);
   const [logoutPending, setLogoutPending] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const restoreFocus = useRef<() => void>(() => {});
@@ -174,10 +198,13 @@ export function OnlineWallet({
                     : `กระเป๋าที่แชร์โดย ${snapshot.wallet.owner.displayName}`}{" "}
                   · {snapshot.wallet.name} · เวลา Asia/Bangkok
                 </p>
-                <p>
-                  ข้อมูลเดิมในอุปกรณ์ยังคงเก็บไว้
-                  การนำเข้าจะเปิดให้ใช้งานภายหลัง
-                </p>
+                <p>ข้อมูลเดิมในอุปกรณ์จะไม่ถูกลบโดยการนำเข้า</p>
+                {accountRecovered && (
+                  <p role="status">
+                    กู้คืนบัญชีและกระเป๋าส่วนตัวแล้ว
+                    การแชร์และคำเชิญเดิมไม่ได้ถูกกู้คืน
+                  </p>
+                )}
                 {actionError && <p role="alert">{actionError}</p>}
                 {wallet.error && <p role="alert">{wallet.error}</p>}
                 <button
@@ -386,8 +413,33 @@ export function OnlineWallet({
       {settingsOpen && (
         <SettingsSurface
           theme={theme}
-          onToggleTheme={toggleTheme}
-          onClose={() => setSettingsOpen(false)}
+          onThemeToggleRequest={toggleTheme}
+          onSettingsCloseRequest={() => setSettingsOpen(false)}
+          accountSettings={
+            <>
+              <SessionManager onSessionEnded={onSessionEnded} />
+              <Button
+                variant="destructive"
+                onClick={() => setAccountDeletionOpen(true)}
+              >
+                ขอลบบัญชี
+              </Button>
+            </>
+          }
+        />
+      )}
+      {owner && deviceImportPreview && (
+        <DeviceImportDialog
+          walletId={walletId}
+          preview={deviceImportPreview}
+          onDeviceImportCancel={() => {
+            deviceImportComplete();
+            setDeviceImportPreview(null);
+          }}
+          onDeviceImportComplete={() => {
+            setDeviceImportPreview(null);
+            void wallet.walletSnapshotReload();
+          }}
         />
       )}
       {logoutOpen && (
@@ -407,6 +459,12 @@ export function OnlineWallet({
               setLogoutError("ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง");
             });
           }}
+        />
+      )}
+      {accountDeletionOpen && (
+        <AccountDeletionConfirmation
+          onAccountDeletionCancel={() => setAccountDeletionOpen(false)}
+          onAccountDeletionComplete={onSessionEnded}
         />
       )}
     </AppShell>

@@ -5,16 +5,24 @@ import { registerBetaWaitlistRoutes } from "./beta-waitlist.routes.js";
 import { BetaWaitlistService } from "./beta-waitlist.service.js";
 
 function testApp(requestAccess = vi.fn().mockResolvedValue(undefined)) {
+  const withdrawalRequest = vi.fn().mockResolvedValue(undefined);
+  const withdrawalConsume = vi.fn().mockResolvedValue(undefined);
   return {
     app: createApp({
       checkDatabase: vi.fn(),
       registerRoutes: (app) =>
         registerBetaWaitlistRoutes(
           app,
-          new BetaWaitlistService({ requestAccess }),
+          new BetaWaitlistService({
+            requestAccess,
+            betaWaitlistWithdrawalRequest: withdrawalRequest,
+            betaWaitlistWithdrawalConsume: withdrawalConsume,
+          }),
         ),
     }),
     requestAccess,
+    withdrawalRequest,
+    withdrawalConsume,
   };
 }
 
@@ -31,6 +39,32 @@ describe("Beta Waitlist HTTP API", () => {
     expect(requestAccess).toHaveBeenCalledWith(
       "friend@example.com",
       "2026-09-04",
+    );
+  });
+
+  it("returns neutral withdrawal results and hashes single-use tokens", async () => {
+    const { app, withdrawalRequest, withdrawalConsume } = testApp();
+    const requested = await request(app)
+      .post("/api/beta/waitlist/withdrawals")
+      .send({ email: " Friend@Example.COM " });
+    expect(requested.status).toBe(202);
+    expect(withdrawalRequest).toHaveBeenCalledWith(
+      "friend@example.com",
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.stringContaining("waitlistWithdrawal="),
+      expect.any(Date),
+    );
+    const token = "a".repeat(32);
+    expect(
+      (
+        await request(app)
+          .post("/api/beta/waitlist/withdrawals/consume")
+          .send({ token })
+      ).status,
+    ).toBe(204);
+    expect(withdrawalConsume).toHaveBeenCalledWith(
+      expect.stringMatching(/^[a-f0-9]{64}$/),
+      expect.any(Date),
     );
   });
 

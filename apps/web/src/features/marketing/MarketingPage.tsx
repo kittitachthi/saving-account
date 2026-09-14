@@ -23,6 +23,14 @@ export function MarketingPage({
   const [loginOpen, setLoginOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [consent, setConsent] = useState(false);
+  const [withdrawalEmail, setWithdrawalEmail] = useState("");
+  const [withdrawalStatus, setWithdrawalStatus] = useState<
+    "idle" | "pending" | "requested" | "withdrawn" | "error"
+  >(() =>
+    new URLSearchParams(window.location.search).has("waitlistWithdrawal")
+      ? "pending"
+      : "idle",
+  );
   const waitlist = useBetaWaitlist();
   const loginTrigger = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -44,6 +52,24 @@ export function MarketingPage({
     };
   }, [loginOpen]);
 
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get(
+      "waitlistWithdrawal",
+    );
+    if (!token) return;
+    void fetch("/api/beta/waitlist/withdrawals/consume", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error();
+        setWithdrawalStatus("withdrawn");
+        window.history.replaceState({}, "", window.location.pathname);
+      })
+      .catch(() => setWithdrawalStatus("error"));
+  }, []);
+
   const closeLogin = () => {
     setLoginOpen(false);
     queueMicrotask(() => loginTrigger.current?.focus());
@@ -58,6 +84,25 @@ export function MarketingPage({
     if (await waitlist.submit(email)) {
       setEmail("");
       setConsent(false);
+    }
+  };
+
+  const handleWaitlistWithdrawalRequest = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+    setWithdrawalStatus("pending");
+    try {
+      const response = await fetch("/api/beta/waitlist/withdrawals", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: withdrawalEmail }),
+      });
+      if (!response.ok) throw new Error();
+      setWithdrawalStatus("requested");
+      setWithdrawalEmail("");
+    } catch {
+      setWithdrawalStatus("error");
     }
   };
 
@@ -246,6 +291,9 @@ export function MarketingPage({
           <h2 id="waitlist-title">ขอเข้าร่วม Private Beta</h2>
           <p>ทิ้งอีเมลไว้ หากได้รับสิทธิ์เราจะส่งลิงก์เข้าสู่ระบบให้ทางอีเมล</p>
         </div>
+        {withdrawalStatus === "withdrawn" && (
+          <p role="status">ถอนคำขอเข้าร่วม Beta แล้ว</p>
+        )}
         {waitlist.state === "success" ? (
           <div className={styles.success} role="status">
             <strong>รับคำขอแล้ว ✓</strong>
@@ -299,8 +347,39 @@ export function MarketingPage({
             Private Beta เท่านั้น ไม่ใช้ส่งข่าวสารการตลาดทั่วไป
             คำขอที่ยังไม่ได้รับอนุมัติจะเก็บไม่เกิน 180 วัน
             การส่งคำขอไม่รับประกันสิทธิ์เข้าใช้
-            และระบบจะประกาศช่องทางถอนคำขอก่อนเปิด Beta ให้บุคคลทั่วไป
+            คุณสามารถขอถอนคำขอได้ทางลิงก์ยืนยันที่ส่งไปยังอีเมลของคุณ
           </p>
+        </details>
+        <details className={styles.privacy}>
+          <summary>ถอนคำขอเข้าร่วม Beta</summary>
+          <form
+            className={styles.form}
+            onSubmit={handleWaitlistWithdrawalRequest}
+          >
+            <label htmlFor="waitlist-withdrawal-email">
+              อีเมลที่ใช้ส่งคำขอ
+            </label>
+            <div className={styles.inputRow}>
+              <input
+                id="waitlist-withdrawal-email"
+                type="email"
+                required
+                value={withdrawalEmail}
+                onChange={(event) => setWithdrawalEmail(event.target.value)}
+              />
+              <button disabled={withdrawalStatus === "pending"}>
+                ส่งลิงก์ยืนยัน
+              </button>
+            </div>
+            {withdrawalStatus === "requested" && (
+              <p role="status">
+                หากมีคำขอที่ถอนได้ ระบบจะส่งลิงก์ยืนยันไปยังอีเมลนี้
+              </p>
+            )}
+            {withdrawalStatus === "error" && (
+              <p role="alert">ส่งคำขอไม่สำเร็จ กรุณาลองอีกครั้ง</p>
+            )}
+          </form>
         </details>
       </section>
 

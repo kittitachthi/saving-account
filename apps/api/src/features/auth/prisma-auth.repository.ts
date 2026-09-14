@@ -71,6 +71,7 @@ export class PrismaAuthRepository implements AuthRepository {
     identity: GoogleIdentity,
     tokenHash: string,
     expiresAt: Date,
+    deviceLabel = "อุปกรณ์ไม่ทราบชนิด",
   ) {
     return this.prisma.$transaction(async (transaction) => {
       const allowed = await transaction.betaAllowlist.findUnique({
@@ -92,18 +93,36 @@ export class PrismaAuthRepository implements AuthRepository {
         },
       });
 
-      let user: AuthenticatedUser;
+      let user: AuthenticatedUser & { accountRecovered?: true };
       if (account) {
+        await transaction.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${account.userId}::uuid FOR UPDATE`;
+        const currentUser = await transaction.user.findUniqueOrThrow({
+          where: { id: account.userId },
+        });
+        if (
+          currentUser.pendingDeletionAt &&
+          currentUser.pendingDeletionAt.getTime() + 30 * 86400_000 <= Date.now()
+        )
+          return null;
         const updated = await transaction.user.update({
           where: { id: account.userId },
           data: {
             displayName: identity.displayName,
             email: identity.email,
             avatarUrl: identity.avatarUrl,
+            pendingDeletionAt: null,
           },
           include: { ownedWallets: { orderBy: { createdAt: "asc" } } },
         });
-        user = toAuthenticatedUser(updated);
+        await transaction.accountDeletionJob.deleteMany({
+          where: { userId: account.userId },
+        });
+        user = {
+          ...toAuthenticatedUser(updated),
+          ...(currentUser.pendingDeletionAt
+            ? { accountRecovered: true as const }
+            : {}),
+        };
       } else {
         const emailOwner = await transaction.user.findUnique({
           where: { email: identity.email },
@@ -143,7 +162,7 @@ export class PrismaAuthRepository implements AuthRepository {
       }
 
       await transaction.session.create({
-        data: { userId: user.id, tokenHash, expiresAt },
+        data: { userId: user.id, tokenHash, expiresAt, deviceLabel },
       });
       return user;
     });
@@ -191,5 +210,103 @@ export class PrismaAuthRepository implements AuthRepository {
       where: { tokenHash, expiresAt: { gt: now } },
     });
     return result.count === 1;
+  }
+
+  async authSessionsList(tokenHash: string, now: Date) {
+    const current = await this.prisma.session.findFirst({
+      where: { tokenHash, expiresAt: { gt: now } },
+      select: { userId: true },
+    });
+    if (!current) return [];
+    const sessions = await this.prisma.session.findMany({
+      where: { userId: current.userId, expiresAt: { gt: now } },
+      orderBy: { lastSeenAt: "desc" },
+    });
+    return sessions.map((session) => ({
+      id: session.id,
+      deviceLabel: session.deviceLabel,
+      current: session.tokenHash === tokenHash,
+      createdAt: session.createdAt.toISOString(),
+      lastSeenAt: session.lastSeenAt.toISOString(),
+      expiresAt: session.expiresAt.toISOString(),
+    }));
+  }
+
+  async authSessionRevoke(tokenHash: string, sessionId: string, now: Date) {
+    const current = await this.prisma.session.findFirst({
+      where: { tokenHash, expiresAt: { gt: now } },
+      select: { userId: true },
+    });
+    if (!current) return false;
+    const result = await this.prisma.session.deleteMany({
+      where: { id: sessionId, userId: current.userId, expiresAt: { gt: now } },
+    });
+    return result.count === 1;
+  }
+
+  async authSessionsRevokeAll(tokenHash: string, now: Date) {
+    return this.prisma.$transaction(async (transaction) => {
+      const current = await transaction.session.findFirst({
+        where: { tokenHash, expiresAt: { gt: now } },
+        select: { userId: true },
+      });
+      if (!current) return false;
+      await transaction.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${current.userId}::uuid FOR UPDATE`;
+      await transaction.session.deleteMany({
+        where: { userId: current.userId },
+      });
+      return true;
+    });
+  }
+
+  async accountDeletionRequest(tokenHash: string, now: Date) {
+    return this.prisma.$transaction(async (transaction) => {
+      const current = await transaction.session.findFirst({
+        where: { tokenHash, expiresAt: { gt: now } },
+        include: {
+          user: {
+            select: { email: true, ownedWallets: { select: { id: true } } },
+          },
+        },
+      });
+      if (!current) return false;
+      const ownedWalletIds = current.user.ownedWallets.map(({ id }) => id);
+      await transaction.user.update({
+        where: { id: current.userId },
+        data: { pendingDeletionAt: now },
+      });
+      await transaction.accountDeletionJob.upsert({
+        where: { userId: current.userId },
+        create: {
+          userId: current.userId,
+          dueAt: new Date(now.getTime() + 30 * 86400_000),
+        },
+        update: { dueAt: new Date(now.getTime() + 30 * 86400_000) },
+      });
+      await Promise.all([
+        transaction.session.deleteMany({ where: { userId: current.userId } }),
+        transaction.walletMembership.deleteMany({
+          where: {
+            role: "VIEWER",
+            OR: [
+              { userId: current.userId },
+              { walletId: { in: ownedWalletIds } },
+            ],
+          },
+        }),
+        transaction.walletInvitation.updateMany({
+          where: {
+            status: "PENDING",
+            OR: [
+              { invitedById: current.userId },
+              { email: current.user.email },
+              { walletId: { in: ownedWalletIds } },
+            ],
+          },
+          data: { status: "CANCELLED", resolvedAt: now },
+        }),
+      ]);
+      return true;
+    });
   }
 }

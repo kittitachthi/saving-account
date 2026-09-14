@@ -18,9 +18,12 @@ const job = {
   updatedAt: new Date(0),
 } as const;
 
-function setup(send = vi.fn().mockResolvedValue(undefined)) {
+function setup(
+  send = vi.fn().mockResolvedValue(undefined),
+  candidate: typeof job | Record<string, unknown> = job,
+) {
   const notificationOutbox = {
-    findFirst: vi.fn().mockResolvedValue(job),
+    findFirst: vi.fn().mockResolvedValue(candidate),
     updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     update: vi.fn().mockResolvedValue(job),
   };
@@ -63,6 +66,50 @@ describe("notification worker", () => {
           attempts: 1,
           lastError: "Error",
         }),
+      }),
+    );
+  });
+
+  it.each([
+    [
+      "WAITLIST_WITHDRAWAL",
+      { withdrawalUrl: "https://pocka.example/withdraw" },
+      "ยืนยันถอนคำขอ",
+    ],
+    [
+      "BETA_RESET_NOTICE",
+      { resetAt: "2030-01-15T00:00:00.000Z" },
+      "ล้างข้อมูล",
+    ],
+  ])(
+    "delivers %s without financial details",
+    async (kind, payload, subject) => {
+      const { worker, send } = setup(vi.fn().mockResolvedValue(undefined), {
+        ...job,
+        kind,
+        payload,
+      });
+      await worker.notificationDeliveryProcessNext();
+      expect(send).toHaveBeenCalledWith(
+        expect.objectContaining({ subject: expect.stringContaining(subject) }),
+      );
+      expect(JSON.stringify(send.mock.calls[0])).not.toContain("amount");
+    },
+  );
+
+  it("removes the one-time withdrawal URL after delivery", async () => {
+    const { worker, notificationOutbox } = setup(
+      vi.fn().mockResolvedValue(undefined),
+      {
+        ...job,
+        kind: "WAITLIST_WITHDRAWAL",
+        payload: { withdrawalUrl: "https://pocka.example/withdraw?token=secret" },
+      },
+    );
+    await worker.notificationDeliveryProcessNext();
+    expect(notificationOutbox.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ payload: { delivered: true } }),
       }),
     );
   });

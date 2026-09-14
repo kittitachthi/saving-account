@@ -43,6 +43,30 @@ function rejectAuthentication(response: Response) {
   });
 }
 
+function authDeviceLabelDescribe(userAgent = "") {
+  const browser = userAgent.includes("Edg/")
+    ? "Edge"
+    : userAgent.includes("Chrome/")
+      ? "Chrome"
+      : userAgent.includes("Firefox/")
+        ? "Firefox"
+        : userAgent.includes("Safari/")
+          ? "Safari"
+          : "เบราว์เซอร์";
+  const device = userAgent.includes("Android")
+    ? "Android"
+    : userAgent.includes("iPhone") || userAgent.includes("iPad")
+      ? "iPhone/iPad"
+      : userAgent.includes("Windows")
+        ? "Windows"
+        : userAgent.includes("Macintosh")
+          ? "Mac"
+          : userAgent.includes("Linux")
+            ? "Linux"
+            : "อุปกรณ์ไม่ทราบชนิด";
+  return `${browser} บน ${device}`;
+}
+
 export function registerAuthRoutes(
   app: Express,
   auth: AuthService,
@@ -80,12 +104,16 @@ export function registerAuthRoutes(
       const result = await auth.complete(
         callbackUrl(request, config.googleRedirectUri),
         request.query.state,
+        authDeviceLabelDescribe(request.header("user-agent")),
       );
       response.cookie(SESSION_COOKIE, result.sessionToken, {
         ...cookieOptions,
         expires: result.expiresAt,
       });
-      response.redirect(new URL(result.returnTo, config.appOrigin).href);
+      const returnUrl = new URL(result.returnTo, config.appOrigin);
+      if (result.user.accountRecovered)
+        returnUrl.searchParams.set("accountRecovered", "1");
+      response.redirect(returnUrl.href);
     } catch (error) {
       if (error instanceof AuthenticationRejectedError) {
         rejectAuthentication(response);
@@ -132,4 +160,49 @@ export function registerAuthRoutes(
     response.clearCookie(SESSION_COOKIE, cookieOptions);
     response.status(204).end();
   });
+
+  app.get("/api/auth/sessions", async (request, response) => {
+    const token = readSessionToken(request);
+    const sessions = token ? await auth.authSessionsList(token) : [];
+    if (!token || sessions.length === 0) return void rejectSession(response);
+    response.json(sessions);
+  });
+
+  app.delete(
+    "/api/auth/sessions/:sessionId",
+    requireCsrf,
+    async (request, response) => {
+      const token = readSessionToken(request);
+      const sessionId = request.params.sessionId;
+      if (
+        !token ||
+        typeof sessionId !== "string" ||
+        !(await auth.authSessionRevoke(token, sessionId))
+      )
+        return void response.status(404).json({
+          error: { code: "SESSION_NOT_FOUND", message: "Session not found" },
+        });
+      response.status(204).end();
+    },
+  );
+
+  app.delete("/api/auth/sessions", requireCsrf, async (request, response) => {
+    const token = readSessionToken(request);
+    if (!token || !(await auth.authSessionsRevokeAll(token)))
+      return void rejectSession(response);
+    response.clearCookie(SESSION_COOKIE, cookieOptions);
+    response.status(204).end();
+  });
+
+  app.post(
+    "/api/auth/account/deletion",
+    requireCsrf,
+    async (request, response) => {
+      const token = readSessionToken(request);
+      if (!token || !(await auth.accountDeletionRequest(token)))
+        return void rejectSession(response);
+      response.clearCookie(SESSION_COOKIE, cookieOptions);
+      response.status(204).end();
+    },
+  );
 }

@@ -10,6 +10,10 @@
     "beta:allow": "tsx src/scripts/allow-beta-user.ts",
     "beta:approve": "tsx src/scripts/approve-beta-user.ts",
     "beta:decline": "tsx src/scripts/decline-beta-user.ts",
+    "beta:retention": "tsx src/scripts/delete-expired-beta-waitlist.ts",
+    "beta:reset:check": "tsx src/scripts/check-beta-reset.ts",
+    "beta:reset:schedule": "tsx src/scripts/schedule-beta-reset.ts",
+    "accounts:purge": "tsx src/scripts/delete-expired-accounts.ts",
     "test": "vitest run",
     "typecheck": "tsc -b"
   },

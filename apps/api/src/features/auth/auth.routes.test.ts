@@ -25,6 +25,7 @@ function createAuthApp({
   appOrigin = "http://localhost:5173",
   googleRedirectUri = "http://localhost:5173/api/auth/google/callback",
   now = () => new Date(),
+  accountRecovered = false,
 } = {}) {
   let attempt: OAuthAttempt | null = null;
   const sessions = new Map<string, { user: typeof user; expiresAt: Date }>();
@@ -42,7 +43,9 @@ function createAuthApp({
       async (_identity, tokenHash, expiresAt) => {
         if (!allowed) return null;
         sessions.set(tokenHash, { user, expiresAt });
-        return user;
+        return accountRecovered
+          ? { ...user, accountRecovered: true as const }
+          : user;
       },
     ),
     findSession: vi.fn(async (tokenHash, current) => {
@@ -61,6 +64,38 @@ function createAuthApp({
       const session = sessions.get(tokenHash);
       if (!session || session.expiresAt <= current) return false;
       return sessions.delete(tokenHash);
+    }),
+    authSessionsList: vi.fn(async (tokenHash, current) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current) return [];
+      return [
+        {
+          id: tokenHash,
+          deviceLabel: "Chrome บน Windows",
+          current: true,
+          createdAt: current.toISOString(),
+          lastSeenAt: current.toISOString(),
+          expiresAt: session.expiresAt.toISOString(),
+        },
+      ];
+    }),
+    authSessionRevoke: vi.fn(async (tokenHash, sessionId, current) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current || sessionId !== tokenHash)
+        return false;
+      return sessions.delete(tokenHash);
+    }),
+    authSessionsRevokeAll: vi.fn(async (tokenHash, current) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current) return false;
+      sessions.clear();
+      return true;
+    }),
+    accountDeletionRequest: vi.fn(async (tokenHash, current) => {
+      const session = sessions.get(tokenHash);
+      if (!session || session.expiresAt <= current) return false;
+      sessions.clear();
+      return true;
     }),
   };
   const google: GoogleIdentityProvider = {
@@ -118,10 +153,10 @@ describe("Google authentication", () => {
   );
 
   it("rejects expired logout and revokes only the current valid device", async () => {
-    let time = new Date("2026-09-07T00:00:00Z");
+    let time = new Date("2030-09-07T00:00:00Z");
     const { app } = createAuthApp({ now: () => time });
     const expired = await signIn(app);
-    time = new Date("2026-09-14T00:00:00Z");
+    time = new Date("2030-09-14T00:00:00Z");
     expect((await expired.post("/api/auth/logout").set(trusted)).status).toBe(
       401,
     );
@@ -165,17 +200,18 @@ describe("Google authentication", () => {
   );
 
   it("renews a valid Session for seven days, preserves cookie flags and never revives an expired or revoked Session", async () => {
-    let time = new Date("2026-09-07T00:00:00Z");
+    let time = new Date("2030-09-07T00:00:00Z");
     const { app, sessions } = createAuthApp({ now: () => time });
     const browser = await signIn(app);
     const read = await browser.get("/api/auth/session");
+    expect(read.status, JSON.stringify(read.body)).toBe(200);
     expect(read.headers["set-cookie"]).toBeUndefined();
     expect(read.headers["cache-control"]).toContain("no-store");
-    expect(read.body.expiresAt).toBe("2026-09-14T00:00:00.000Z");
-    time = new Date("2026-09-13T00:00:00Z");
+    expect(read.body.expiresAt).toBe("2030-09-14T00:00:00.000Z");
+    time = new Date("2030-09-13T00:00:00Z");
     const renewed = await browser.post("/api/auth/session/renew").set(trusted);
     expect(renewed.status).toBe(200);
-    expect(renewed.body.expiresAt).toBe("2026-09-20T00:00:00.000Z");
+    expect(renewed.body.expiresAt).toBe("2030-09-20T00:00:00.000Z");
     expect(renewed.headers["cache-control"]).toContain("no-store");
     const cookie = renewed.headers["set-cookie"][0];
     expect(cookie).toContain(
@@ -190,7 +226,7 @@ describe("Google authentication", () => {
         .get(createHash("sha256").update(token).digest("hex"))
         ?.expiresAt.toISOString(),
     ).toBe(renewed.body.expiresAt);
-    time = new Date("2026-09-20T00:00:00Z");
+    time = new Date("2030-09-20T00:00:00Z");
     expect(
       (await browser.post("/api/auth/session/renew").set(trusted)).status,
     ).toBe(401);
@@ -287,10 +323,23 @@ describe("Google authentication", () => {
       expect.objectContaining({ email: "friend@example.com" }),
       expect.stringMatching(/^[a-f0-9]{64}$/),
       expect.any(Date),
+      expect.any(String),
     );
     const session = await browser.get("/api/auth/session");
     expect(session.status).toBe(200);
     expect(session.body).toEqual({ user, expiresAt: expect.any(String) });
+  });
+
+  it("marks the return URL after recovering an Account", async () => {
+    const { app } = createAuthApp({ accountRecovered: true });
+    const browser = request.agent(app);
+    await browser.get("/api/auth/google/start?returnTo=/wallet?tab=settings");
+    const callback = await browser.get(
+      "/api/auth/google/callback?state=state-1&code=code-1",
+    );
+    expect(callback.headers.location).toBe(
+      "http://localhost:5173/wallet?tab=settings&accountRecovered=1",
+    );
   });
 
   it("ignores request host headers when creating callback and return URLs", async () => {
@@ -350,6 +399,51 @@ describe("Google authentication", () => {
           .set("X-Pocka-Request", "1")
       ).status,
     ).toBe(204);
+    expect((await browser.get("/api/auth/session")).status).toBe(401);
+  });
+
+  it("lists the current device and protects Session revocation with CSRF", async () => {
+    const { app } = createAuthApp();
+    const browser = await signIn(app);
+    const listed = await browser.get("/api/auth/sessions");
+    expect(listed.status).toBe(200);
+    expect(listed.body).toEqual([
+      expect.objectContaining({ id: expect.any(String), current: true }),
+    ]);
+    expect(
+      (await browser.delete(`/api/auth/sessions/${listed.body[0].id}`)).status,
+    ).toBe(403);
+    expect(
+      (
+        await browser
+          .delete(`/api/auth/sessions/${listed.body[0].id}`)
+          .set(trusted)
+      ).status,
+    ).toBe(204);
+    expect((await browser.get("/api/auth/session")).status).toBe(401);
+  });
+
+  it("revokes every Session and clears the current cookie", async () => {
+    const { app } = createAuthApp();
+    const browser = await signIn(app);
+    const response = await browser.delete("/api/auth/sessions").set(trusted);
+    expect(response.status).toBe(204);
+    expect(response.headers["set-cookie"][0]).toContain(
+      "Expires=Thu, 01 Jan 1970",
+    );
+    expect((await browser.get("/api/auth/session")).status).toBe(401);
+  });
+
+  it("starts account deletion without requiring Privacy acceptance and revokes the Session", async () => {
+    const { app } = createAuthApp();
+    const browser = await signIn(app);
+    const response = await browser
+      .post("/api/auth/account/deletion")
+      .set(trusted);
+    expect(response.status).toBe(204);
+    expect(response.headers["set-cookie"][0]).toContain(
+      "Expires=Thu, 01 Jan 1970",
+    );
     expect((await browser.get("/api/auth/session")).status).toBe(401);
   });
 

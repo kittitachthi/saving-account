@@ -11,6 +11,15 @@ export type AuthSessionResponse = {
   expiresAt: string;
 };
 
+export type AuthDeviceSession = {
+  id: string;
+  deviceLabel: string;
+  current: boolean;
+  createdAt: string;
+  lastSeenAt: string;
+  expiresAt: string;
+};
+
 export type BetaWaitlistRequest = {
   email: string;
   consent: true;

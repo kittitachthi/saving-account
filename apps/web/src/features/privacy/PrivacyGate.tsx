@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import type { PrivacyNoticeResponse } from "@saving-account/contracts";
 import { authenticatedRequest, ApiError } from "../auth";
-import { LogoutConfirmation } from "../account";
+import { AccountDeletionConfirmation, LogoutConfirmation } from "../account";
 import { useTheme } from "../theme";
 import styles from "./PrivacyGate.module.css";
+import { Button } from "../../shared/ui/Button";
 
 export function PrivacyGate({
   children,
@@ -23,6 +24,7 @@ export function PrivacyGate({
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [logoutPending, setLogoutPending] = useState(false);
+  const [accountDeletionOpen, setAccountDeletionOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const requireNotice = useCallback(() => {
     setNotice(null);
@@ -124,6 +126,12 @@ export function PrivacyGate({
         >
           ออกจากระบบ
         </button>
+        <Button
+          variant="destructive"
+          onClick={() => setAccountDeletionOpen(true)}
+        >
+          ขอลบบัญชี
+        </Button>
       </section>
       {logoutOpen && (
         <LogoutConfirmation
@@ -138,6 +146,12 @@ export function PrivacyGate({
               setLogoutError("ออกจากระบบไม่สำเร็จ กรุณาลองอีกครั้ง");
             });
           }}
+        />
+      )}
+      {accountDeletionOpen && (
+        <AccountDeletionConfirmation
+          onAccountDeletionCancel={() => setAccountDeletionOpen(false)}
+          onAccountDeletionComplete={onSessionEnded}
         />
       )}
     </main>

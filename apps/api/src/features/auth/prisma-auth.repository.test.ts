@@ -269,4 +269,128 @@ describe("Prisma authentication persistence", () => {
       });
     }
   });
+
+  it("recovers only the Account and Personal Wallet within 30 days", async () => {
+    const repository = new PrismaAuthRepository(database.client);
+    const identity = {
+      subject: `recovery-${suffix}`,
+      email: `recovery-${suffix}@example.com`,
+      emailVerified: true,
+      displayName: "Recovery tester",
+      avatarUrl: null,
+    };
+    await database.client.betaAllowlist.create({
+      data: { email: identity.email, addedBy: "integration-test" },
+    });
+    try {
+      const tokenHash = `recovery-token-${suffix}`;
+      const user = await repository.createSessionForAllowedIdentity(
+        identity,
+        tokenHash,
+        new Date(Date.now() + 60_000),
+      );
+      const viewer = await database.client.user.create({
+        data: {
+          email: `viewer-${suffix}@example.com`,
+          displayName: "Viewer",
+        },
+      });
+      await database.client.walletMembership.create({
+        data: {
+          walletId: user!.personalWalletId,
+          userId: viewer.id,
+          role: "VIEWER",
+        },
+      });
+      const invitation = await database.client.walletInvitation.create({
+        data: {
+          walletId: user!.personalWalletId,
+          invitedById: user!.id,
+          email: `invited-${suffix}@example.com`,
+          tokenHash: `recovery-invitation-${suffix}`,
+          expiresAt: new Date(Date.now() + 60_000),
+        },
+      });
+      expect(
+        await repository.accountDeletionRequest(tokenHash, new Date()),
+      ).toBe(true);
+      expect(
+        await database.client.session.count({ where: { userId: user!.id } }),
+      ).toBe(0);
+      expect(
+        await database.client.walletMembership.findUnique({
+          where: {
+            walletId_userId: {
+              walletId: user!.personalWalletId,
+              userId: viewer.id,
+            },
+          },
+        }),
+      ).toBeNull();
+      expect(
+        (
+          await database.client.walletInvitation.findUniqueOrThrow({
+            where: { id: invitation.id },
+          })
+        ).status,
+      ).toBe("CANCELLED");
+      expect(
+        (
+          await database.client.user.findUniqueOrThrow({
+            where: { id: user!.id },
+          })
+        ).pendingDeletionAt,
+      ).not.toBeNull();
+      const recovered = await repository.createSessionForAllowedIdentity(
+        identity,
+        `recovered-${suffix}`,
+        new Date(Date.now() + 60_000),
+      );
+      expect(recovered?.personalWalletId).toBe(user?.personalWalletId);
+      expect(
+        (
+          await database.client.user.findUniqueOrThrow({
+            where: { id: user!.id },
+          })
+        ).pendingDeletionAt,
+      ).toBeNull();
+      await Promise.all([
+        repository.accountDeletionRequest(`recovered-${suffix}`, new Date()),
+        repository.createSessionForAllowedIdentity(
+          identity,
+          `concurrent-recovery-${suffix}`,
+          new Date(Date.now() + 60_000),
+        ),
+      ]);
+      const racedUser = await database.client.user.findUniqueOrThrow({
+        where: { id: user!.id },
+      });
+      const racedSessions = await database.client.session.count({
+        where: { userId: user!.id },
+      });
+      expect(
+        racedUser.pendingDeletionAt ? racedSessions === 0 : racedSessions > 0,
+      ).toBe(true);
+      await database.client.session.deleteMany({ where: { userId: user!.id } });
+      await database.client.user.update({
+        where: { id: user!.id },
+        data: { pendingDeletionAt: new Date(Date.now() - 30 * 86400_000) },
+      });
+      expect(
+        await repository.createSessionForAllowedIdentity(
+          identity,
+          `expired-recovery-${suffix}`,
+          new Date(Date.now() + 60_000),
+        ),
+      ).toBeNull();
+      await database.client.user.delete({ where: { id: viewer.id } });
+    } finally {
+      await database.client.user.deleteMany({
+        where: { email: identity.email },
+      });
+      await database.client.betaAllowlist.deleteMany({
+        where: { email: identity.email },
+      });
+    }
+  });
 });
