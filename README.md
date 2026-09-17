@@ -111,6 +111,26 @@ npm run build
 
 คำสั่งทั้งหมดทำงานจาก repository root โดย npm จะส่งงานต่อไปยัง workspace ที่เกี่ยวข้อง
 
+## Render Private Beta
+
+Private Beta ใช้ Render Free Web Service หนึ่งตัวเสิร์ฟ Web และ API แบบ origin เดียว, Neon Free เป็น PostgreSQL และ Brevo Free เป็น SMTP ตาม ADR-018
+
+1. ตั้ง `DATABASE_URL_UNPOOLED` เป็น direct connection ของ Neon branch `production` แล้วก่อน deploy แต่ละ release ให้ checkout commit ที่ต้องการและรัน migration:
+
+   ```sh
+   npm run db:migrate
+   ```
+
+2. Push commit ไป GitHub แล้วสร้าง Render Blueprint จาก `render.yaml`; auto-deploy ถูกปิดเพื่อไม่ให้ application release แซง schema migration
+3. กรอก `DATABASE_URL`, Google credentials, `APP_ORIGIN`, `GOOGLE_REDIRECT_URI`, `SMTP_USER`, `SMTP_PASSWORD` และ `SMTP_FROM` ใน Render โดยไม่ commit ค่าเหล่านี้
+4. ตั้ง `APP_ORIGIN` เป็น HTTPS origin ที่ Render สร้าง และตั้ง `GOOGLE_REDIRECT_URI` เป็น origin เดียวกันต่อด้วย `/api/auth/google/callback`; เพิ่ม URI นี้ใน Google Cloud ให้ตรงทุกตัวอักษร
+5. ใน Render Service เปิด `Connect` → `Outbound` แล้วเพิ่ม IP ranges ที่แสดงเข้า Brevo Authorized IPs
+6. Deploy แบบ manual แล้วตรวจ `<APP_ORIGIN>/api/health` และ `<APP_ORIGIN>/api/readiness`
+
+Render Free หลับหลังไม่มี traffic 15 นาที จึงอาจ cold start และหยุด Notification Worker ชั่วคราว Durable outbox จะเก็บงานไว้ใน Neon และส่งต่อเมื่อ Service ตื่น
+
+`neon.ts` และ Neon packages เป็น configuration/tooling ที่สร้างจาก `neon config init`; แอปบน Render ไม่ใช้ไฟล์นี้ตอน runtime และเชื่อมฐานข้อมูลผ่าน `DATABASE_URL`
+
 ## React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.

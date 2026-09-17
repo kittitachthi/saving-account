@@ -1,6 +1,19 @@
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "./app.js";
+
+const temporaryDirectories: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
+  );
+});
 
 describe("API operational endpoints", () => {
   it("reports liveness without exposing configuration", async () => {
@@ -47,6 +60,34 @@ describe("API operational endpoints", () => {
     expect(response.body).toEqual({
       error: { code: "NOT_FOUND", message: "Route not found" },
     });
+  });
+
+  it("serves the production Web build and preserves API 404 responses", async () => {
+    const webBuildDirectory = await mkdtemp(join(tmpdir(), "pocka-web-"));
+    temporaryDirectories.push(webBuildDirectory);
+    await writeFile(
+      join(webBuildDirectory, "index.html"),
+      '<main id="root">Pocka</main>',
+    );
+    await writeFile(join(webBuildDirectory, "app.js"), "window.Pocka = true;");
+    const app = createApp({
+      checkDatabase: vi.fn(),
+      webBuildDirectory,
+    });
+
+    const home = await request(app).get("/");
+    const clientRoute = await request(app).get("/settings");
+    const asset = await request(app).get("/app.js");
+    const missingApi = await request(app).get("/api/missing");
+
+    expect(home.status).toBe(200);
+    expect(home.text).toContain("Pocka");
+    expect(clientRoute.status).toBe(200);
+    expect(clientRoute.text).toContain("Pocka");
+    expect(asset.status).toBe(200);
+    expect(asset.text).toContain("window.Pocka");
+    expect(missingApi.status).toBe(404);
+    expect(missingApi.body.error.code).toBe("NOT_FOUND");
   });
 
   it("distinguishes invalid JSON from an unexpected server error", async () => {

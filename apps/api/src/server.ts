@@ -1,4 +1,5 @@
 import { config as loadEnvironment } from "dotenv";
+import { fileURLToPath } from "node:url";
 import { createApp } from "./app.js";
 import { parseConfig } from "./config/config.js";
 import { createLogger } from "./config/logger.js";
@@ -45,6 +46,7 @@ const notificationWorker = config.smtp
 const app = createApp({
   checkDatabase: () => database.checkConnection(),
   logger,
+  webBuildDirectory: fileURLToPath(new URL("../../web/dist/", import.meta.url)),
   registerRoutes: (app) => {
     registerAuthRoutes(app, auth, {
       appOrigin: config.appOrigin,

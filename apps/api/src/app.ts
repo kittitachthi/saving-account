@@ -11,12 +11,14 @@ type AppDependencies = {
   checkDatabase: () => Promise<void> | void;
   logger?: Logger;
   registerRoutes?: (app: Express) => void;
+  webBuildDirectory?: string;
 };
 
 export function createApp({
   checkDatabase,
   logger = pino({ level: "silent" }),
   registerRoutes,
+  webBuildDirectory,
 }: AppDependencies) {
   const app = express();
 
@@ -63,6 +65,16 @@ export function createApp({
       });
     }
   });
+
+  if (webBuildDirectory) {
+    app.use(express.static(webBuildDirectory));
+    app.use((request, response, next) => {
+      const apiRequest =
+        request.path === "/api" || request.path.startsWith("/api/");
+      if (request.method !== "GET" || apiRequest) return void next();
+      response.sendFile("index.html", { root: webBuildDirectory });
+    });
+  }
 
   app.use((_request, response) => {
     response.status(404).json({

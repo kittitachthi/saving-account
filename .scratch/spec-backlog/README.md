@@ -1,6 +1,6 @@
 # Spec implementation backlog
 
-Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, 13–14 on 2026-09-09, Wallet Sharing 16–22 on 2026-09-10, and 09/15/23–26 on 2026-09-14: 26/27 product tickets complete. Standards-migration tickets 28–31 were completed on 2026-09-09. Ticket 27 completed its local isolated backup, restore and reset rehearsal against disposable data; provider-native rehearsal with separate credentials and automatic verified backup deletion remains. Existing account-menu tickets are preserved.
+Approved product breakdown: 27 tickets. Completed 01–05 on 2026-09-07, 06–08 and 10–12 on 2026-09-08, 13–14 on 2026-09-09, Wallet Sharing 16–22 on 2026-09-10, and 09/15/23–26 on 2026-09-14: 26/27 product tickets complete. Standards-migration tickets 28–31 were completed on 2026-09-09. Ticket 27 completed its local isolated backup, restore and reset rehearsal against disposable data; provider-native rehearsal with separate credentials and automatic verified backup deletion remains. Ticket 32 tracks the accepted Render + Neon + Brevo Private Beta deployment. Existing account-menu tickets are preserved.
 
 Local tracking follows the existing repository convention; no external issues were published. Run `/setup-matt-pocock-skills` to configure an external tracker.
 
@@ -45,3 +45,4 @@ Verification for 01–05: 121 tests passed (35 API, 86 web), repository typechec
 29. [ปรับชื่อ Transaction และ Wallet functions ฝั่ง web](issues/29-web-transaction-wallet-naming.md) — complete
 30. [ปรับชื่อ Wallet functions ฝั่ง API](issues/30-api-wallet-naming.md) — complete
 31. [ตรวจและปิดงานย้ายมาตรฐานรอบแรก](issues/31-standards-migration-verification.md) — complete
+32. [Deploy Private Beta ด้วย Render, Neon และ Brevo](issues/32-render-private-beta-deployment.md) — complete
